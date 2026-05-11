@@ -1,0 +1,62 @@
+-- ULTIMATE NFT BATTLE DUMPER v2.0
+local RS=game:GetService("ReplicatedStorage")local P=game.Players.LocalPlayer local PG=P.PlayerGui
+local O="=== NFT BATTLE FULL DUMP v2.0 ===\n"..os.date("%Y-%m-%d %H:%M:%S").."\nPlayer: "..P.Name.."\nUserID: "..P.UserId.."\nPlaceID: "..game.PlaceId.."\n\n"
+
+O=O.."=== 1. REMOTE EVENTS & FUNCTIONS ===\n"
+for _,e in RS.Events:GetChildren()do O=O..e.ClassName..": "..e:GetFullName().."\n"end
+
+O=O.."\n=== 2. MODULE SCRIPTS ===\n"
+for _,m in RS:GetChildren()do if m:IsA("ModuleScript")then O=O.."--- "..m:GetFullName().." ---\n"pcall(function()local s=decompile(m)if s then O=O..s.."\n"end end)end end
+
+O=O.."\n=== 3. LOCAL SCRIPTS ===\n"
+for _,l in PG:GetDescendants()do if l:IsA("LocalScript")then O=O.."--- "..l:GetFullName().." ---\n"pcall(function()local s=decompile(l)if s then O=O..s.."\n"end end)end end
+
+O=O.."\n=== 4. PLAYER VALUES ===\n"
+local function dv(p,i)for _,v in p:GetChildren()do local val=""pcall(function()val=tostring(v.Value)end)if v:IsA("Folder")then O=O..i.."[Folder] "..v.Name.."\n"dv(v,i.."  ")elseif val~=""then O=O..i..v.Name.." = "..val.." ["..v.ClassName.."]\n"end end end dv(P,"")
+
+O=O.."\n=== 5. GUI ELEMENTS ===\n"
+local function dg(o,d)if o:IsA("ScreenGui")or o:IsA("Frame")or o:IsA("ScrollingFrame")then O=O..string.rep("  ",d).."["..o.ClassName.."] "..o.Name.."\n"elseif o:IsA("TextLabel")then O=O..string.rep("  ",d).."["..o.ClassName.."] "..o:GetFullName().." | '"..o.Text.."'\n"elseif o:IsA("TextButton")then O=O..string.rep("  ",d).."["..o.ClassName.."] "..o:GetFullName().." | '"..o.Text.."'\n"elseif o:IsA("ImageButton")or o:IsA("ImageLabel")then O=O..string.rep("  ",d).."["..o.ClassName.."] "..o:GetFullName().."\n"end for _,c in o:GetChildren()do dg(c,d+1)end end for _,g in PG:GetChildren()do dg(g,0)end
+
+O=O.."\n=== 6. GIFTS & PRICES ===\n"
+pcall(function()local I=require(RS.Info)for n,d in I.Gifts do O=O..n.." = ⭐"..d.Price.." | Image: "..(d.Image or"N/A").."\n"end end)
+
+O=O.."\n=== 7. CASES & DROPS ===\n"
+pcall(function()local I=require(RS.Info)for n,d in I.Cases do O=O..n.." = ⭐"..(d.Price or 0).."\n"if d.Drop then for _,dr in d.Drop do O=O.."  "..dr[1].." | "..dr[2].."%\n"end end end end)
+
+O=O.."\n=== 8. PATTERNS ===\n"
+pcall(function()local I=require(RS.Info)for n,id in I.Patterns do O=O..n.." = "..id.."\n"end end)
+
+O=O.."\n=== 9. BACKDROPS ===\n"
+pcall(function()local I=require(RS.Info)for n,c in I.Backdrops do O=O..n.." = "..tostring(c).."\n"end end)
+
+O=O.."\n=== 10. TASKS ===\n"
+pcall(function()local I=require(RS.Info)for n,d in I.Tasks do O=O..n.." = "..d.Heading.." | Reward: "..d.Reward.." | Goal: "..d.Goal.." | Trigger: "..d.Trigger.." | Duration: "..d.Duration.."\n"end end)
+
+O=O.."\n=== 11. PASS GIFTS ===\n"
+pcall(function()local I=require(RS.Info)for id,pid in I.PassGifts do O=O..id.." → Product: "..pid.."\n"end end)
+
+O=O.."\n=== 12. PAID CASES ===\n"
+pcall(function()local I=require(RS.Info)for n,ids in I.PaidCases do O=O..n..": "..table.concat(ids,", ").."\n"end end)
+
+O=O.."\n=== 13. BANNERS ===\n"
+pcall(function()local I=require(RS.Info)for n,b in I.Banners do O=O..n..":\n"for _,d in b do O=O.."  "..d[1].." | "..d[2].."%\n"end end end)
+
+O=O.."\n=== 14. INVENTORY SLOTS ===\n"
+pcall(function()local I=require(RS.Info)for s,p in I.InventoryUpgradePrices do O=O..s.." slots = 💎"..p.."\n"end end)
+
+O=O.."\n=== 15. SOUNDS ===\n"
+pcall(function()for _,s in RS.Sounds:GetChildren()do O=O..s.Name.." = "..s.SoundId.."\n"end end)
+
+O=O.."\n=== 16. WORKSPACE ===\n"
+for _,v in workspace:GetChildren()do O=O.."["..v.ClassName.."] "..v.Name.."\n"end
+
+O=O.."\n=== 17. LIGHTING ===\n"
+for _,v in game.Lighting:GetChildren()do O=O.."["..v.ClassName.."] "..v.Name.."\n"end
+
+O=O.."\n=== 18. RS VALUES ===\n"
+for _,v in RS:GetChildren()do if v:IsA("NumberValue")or v:IsA("StringValue")or v:IsA("IntValue")then pcall(function()O=O..v.Name.." = "..tostring(v.Value).." ["..v.ClassName.."]\n"end)end end
+
+O=O.."\n=== 19. GAME INFO ===\n"
+pcall(function()local d=game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)O=O.."Name: "..d.Name.."\nDesc: "..d.Description.."\n"end)
+
+setclipboard(O)print("✅ Скопировано: "..#O.." символов")
