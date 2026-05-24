@@ -1,0 +1,653 @@
+local u = game:GetService("ReplicatedStorage")
+local i = game.Players.LocalPlayer
+local m = Instance.new
+local ev = u.Events
+local gui = m("ScreenGui", i.PlayerGui)
+local uis = game:GetService("UserInputService")
+local ts = game:GetService("TweenService")
+local inv = i._Inventory
+local inf = require(u.Info)
+gui.Name = "CypherRight"
+gui.ResetOnSpawn = false
+
+local sc = Color3.fromRGB(0, 255, 100)
+local bgCol = Color3.fromRGB(10, 10, 10)
+local txtCol = Color3.new(1, 1, 1)
+local creatorName = "TROTULOV39"
+local creatorId = 9988144824
+
+local cases = {}
+for n, v in inf.Cases do
+    if not v.Limited and not v.Paid and not v.TON and not v.GEMS then table.insert(cases, n) end
+end
+table.sort(cases)
+
+local xmasCases = {"Reindeer", "Santa", "XMAS Night", "Festive"}
+local allNfts = {}
+for n, _ in inf.Gifts do table.insert(allNfts, n) end
+table.sort(allNfts)
+
+local patterns = {"None","Stripes","Dots","Zigzag","Waves","Grid","Sparkle","Gradient","Camo","Tiger","Zebra","Leopard","Snake","Dragon","Fire","Ice","Thunder","Poison","Blood","Gold","Diamond","Galaxy","Nebula","Matrix","Digital","Glitch","Void","Angel","Demon"}
+local backgrounds = {"None","Red","Blue","Green","Yellow","Purple","Orange","Pink","Black","White","Grey","Cyan","Mint","Lime","Crimson","Navy","Gold","Silver","Bronze","Fire","Ice","Thunder","Night","Sunset","Ocean","Forest","Desert","Space"}
+
+local autoSell = false
+local favList = {}
+local selCase = {}
+local selBattleCase = {}
+local running = false
+local fusing = false
+local crafting = false
+local runningCube = false
+local runningBattle = false
+local cubeBot = true
+local battleBot = true
+local antiAfk = true
+local hideInv = false
+local sTab = "Cases"
+local openedCount = 0
+local soldCount = 0
+local openCount = 10
+local battleCount = 10
+local cubeStars = 1000000
+local startTime = tick()
+local dropStats = {}
+local luckTime = 300
+local blessTime = 900
+local hidden = false
+local minimized = false
+
+i._1628441770.Value = 1
+
+local function cr(c, p, props)
+    local o = m(c)
+    if p then o.Parent = p end
+    if props then for k, v in pairs(props) do pcall(function() o[k] = v end) end end
+    return o
+end
+
+local function round(num)
+    local n = tostring(num)
+    if #n > 9 then return string.format("%.1fB", num / 1000000000)
+    elseif #n > 6 then return string.format("%.1fM", num / 1000000)
+    elseif #n > 3 then return string.format("%.1fK", num / 1000)
+    else return n end
+end
+
+local function notify(title, text, isMega)
+    local nf = m("Frame", gui)
+    nf.Size = UDim2.new(0, 280, 0, 50)
+    nf.Position = UDim2.new(0.5, -140, 0, -55)
+    nf.BackgroundColor3 = bgCol
+    nf.BackgroundTransparency = 0.05
+    nf.BorderSizePixel = 0
+    nf.ZIndex = 100
+    Instance.new("UICorner", nf).CornerRadius = UDim.new(0, 10)
+    cr("TextLabel", nf, {Size = UDim2.new(1, -16, 0, 18), Position = UDim2.new(0, 8, 0, 4), Text = title, TextColor3 = isMega and Color3.fromRGB(255, 150, 50) or sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 101})
+    cr("TextLabel", nf, {Size = UDim2.new(1, -16, 0, 22), Position = UDim2.new(0, 8, 0, 22), Text = text, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 9, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 101})
+    if isMega then
+        local snd = m("Sound", nf) snd.SoundId = "rbxassetid://9120386438" snd.Volume = 1 snd:Play() game.Debris:AddItem(snd, 3)
+    end
+    ts:Create(nf, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -140, 0, 8)}):Play()
+    task.delay(3.5, function()
+        ts:Create(nf, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -140, 0, -55)}):Play()
+        task.delay(0.3, function() nf:Destroy() end)
+    end)
+end
+
+local M = cr("Frame", gui, {Size = UDim2.new(0, 280, 0, 300), Position = UDim2.new(0.3, 0, 0.3, 0), BackgroundColor3 = bgCol, BackgroundTransparency = 0.08, BorderSizePixel = 0})
+Instance.new("UICorner", M).CornerRadius = UDim.new(0, 10)
+
+local Top = cr("Frame", M, {Size = UDim2.new(1, 0, 0, 46), BackgroundColor3 = sc, BorderSizePixel = 0})
+Instance.new("UICorner", Top).CornerRadius = UDim.new(0, 10)
+
+local avatar = cr("ImageLabel", Top, {Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(0, 7, 0, 7), BackgroundTransparency = 1, Image = "rbxthumb://type=AvatarHeadShot&id="..i.UserId.."&w=48&h=48"})
+Instance.new("UICorner", avatar).CornerRadius = UDim.new(0, 16)
+
+cr("TextLabel", Top, {Size = UDim2.new(1, -130, 0, 16), Position = UDim2.new(0, 44, 0, 4), Text = i.Name, TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left})
+local balLabel = cr("TextLabel", Top, {Size = UDim2.new(1, -130, 0, 12), Position = UDim2.new(0, 44, 0, 20), Text = "⭐0 💎0 💠0 ❄0", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Left})
+local timerLabel = cr("TextLabel", Top, {Size = UDim2.new(0, 40, 0, 12), Position = UDim2.new(1, -48, 0, 4), Text = "00:00", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Center})
+
+local HideBtn = cr("TextButton", Top, {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -72, 0, 24), Text = "▼", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 10})
+Instance.new("UICorner", HideBtn).CornerRadius = UDim.new(0, 4)
+local Min = cr("TextButton", Top, {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -50, 0, 24), Text = "—", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 10})
+Instance.new("UICorner", Min).CornerRadius = UDim.new(0, 4)
+local Cls = cr("TextButton", Top, {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -28, 0, 24), Text = "✕", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 9})
+Instance.new("UICorner", Cls).CornerRadius = UDim.new(0, 4)
+
+local TF = cr("Frame", M, {Size = UDim2.new(0, 280, 0, 20), Position = UDim2.new(0, 0, 0, 46), BackgroundColor3 = Color3.fromRGB(15, 15, 15)})
+local tabs = {"💼", "🥊", "🔄", "🎄", "🎲", "💻", "🔧", "ℹ"}
+local tabNames = {"Cases", "Battle", "Fuse", "Xmas", "Dice", "Local", "Extra", "Info"}
+
+for j = 1, #tabs do
+    local t = cr("TextButton", TF, {Size = UDim2.new(0.125, 0, 1, 0), Position = UDim2.new((j - 1) * 0.125, 0, 0, 0), Text = tabs[j], BackgroundColor3 = j == 1 and sc or Color3.fromRGB(20, 20, 20), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 9})
+    t.MouseButton1Click:Connect(function()
+        sTab = tabNames[j]
+        for _, v in TF:GetChildren() do if v:IsA("TextButton") then v.BackgroundColor3 = Color3.fromRGB(20, 20, 20) end end
+        t.BackgroundColor3 = sc
+        loadTab()
+    end)
+end
+
+local PG = cr("ScrollingFrame", M, {Size = UDim2.new(1, -4, 1, -70), Position = UDim2.new(0, 2, 0, 68), CanvasSize = UDim2.new(0, 0, 0, 1200), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 2, ScrollBarImageColor3 = sc})
+
+local drag = false
+local dS, dP
+Top.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+        drag = true dS = inp.Position dP = M.Position
+    end
+end)
+uis.InputChanged:Connect(function(inp)
+    if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+        local d = inp.Position - dS
+        M.Position = UDim2.new(dP.X.Scale, dP.X.Offset + d.X, dP.Y.Scale, dP.Y.Offset + d.Y)
+    end
+end)
+uis.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end
+end)
+
+HideBtn.MouseButton1Click:Connect(function()
+    hidden = not hidden
+    if hidden then TF.Visible = false PG.Visible = false M.Size = UDim2.new(0, 280, 0, 46) HideBtn.Text = "▲"
+    else TF.Visible = true PG.Visible = true M.Size = UDim2.new(0, 280, 0, 300) HideBtn.Text = "▼" end
+end)
+
+Min.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then M.Visible = false
+        local restoreBtn = m("TextButton", gui)
+        restoreBtn.Size = UDim2.new(0, 40, 0, 40)
+        restoreBtn.Position = UDim2.new(0, 10, 0, 10)
+        restoreBtn.Text = "📦"
+        restoreBtn.BackgroundColor3 = sc
+        restoreBtn.TextColor3 = Color3.new(0, 0, 0)
+        restoreBtn.BorderSizePixel = 0
+        restoreBtn.Font = Enum.Font.GothamBold
+        restoreBtn.TextSize = 20
+        restoreBtn.ZIndex = 999
+        Instance.new("UICorner", restoreBtn).CornerRadius = UDim.new(0, 8)
+        restoreBtn.Name = "RestoreBtn"
+        restoreBtn.MouseButton1Click:Connect(function()
+            M.Visible = true
+            restoreBtn:Destroy()
+            minimized = false
+        end)
+    else
+        M.Visible = true
+        for _, v in gui:GetChildren() do if v.Name == "RestoreBtn" then v:Destroy() end end
+    end
+end)
+
+Cls.MouseButton1Click:Connect(function() running = false fusing = false crafting = false runningCube = false runningBattle = false gui:Destroy() end)
+
+task.spawn(function()
+    while gui and gui.Parent do
+        local elapsed = tick() - startTime
+        timerLabel.Text = string.format("%02d:%02d", math.floor(elapsed / 60), math.floor(elapsed % 60))
+        balLabel.Text = "⭐" .. round(i._StarsValue.Value) .. " 💎" .. round(i._GemsValue.Value) .. " 💠" .. round(i._TONValue.Value) .. " ❄" .. round(i._SnowflakesValue.Value)
+        i._1628441770.Value = 1
+        wait(1)
+    end
+end)
+
+task.spawn(function()
+    while gui and gui.Parent do
+        if antiAfk then local v = m("VirtualUser") v:SetKeyDown("Home") wait(0.1) v:SetKeyUp("Home") end
+        wait(60)
+    end
+end)
+
+local function caseBtn(n, selectedList)
+    local cd = inf.Cases[n]
+    local f = cr("Frame", nil, {Size = UDim2.new(1, -4, 0, 28), BackgroundColor3 = Color3.fromRGB(20, 20, 20), BackgroundTransparency = 0.3, BorderSizePixel = 0})
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 5)
+    if cd and cd.Image then cr("ImageLabel", f, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(0, 3, 0, 2), BackgroundTransparency = 1, Image = "rbxassetid://" .. cd.Image}) end
+    local currency = cd and cd.TON and "💠" or cd and cd.GEMS and "💎" or "⭐"
+    local price = cd and cd.Price or 0
+    cr("TextLabel", f, {Size = UDim2.new(1, -70, 1, 0), Position = UDim2.new(0, 30, 0, 0), Text = n, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9, TextXAlignment = Enum.TextXAlignment.Left})
+    cr("TextLabel", f, {Size = UDim2.new(0, 45, 1, 0), Position = UDim2.new(1, -70, 0, 0), Text = currency .. price, TextColor3 = Color3.new(1, 0.8, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 8, TextXAlignment = Enum.TextXAlignment.Right})
+    local addBtn = cr("TextButton", f, {Size = UDim2.new(0, 22, 0, 22), Position = UDim2.new(1, -24, 0, 3), Text = "+", TextColor3 = txtCol, BackgroundColor3 = Color3.fromRGB(35, 35, 35), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 12})
+    Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0, 4)
+    if table.find(selectedList, n) then addBtn.Text = "✓" addBtn.BackgroundColor3 = sc end
+    addBtn.MouseButton1Click:Connect(function()
+        local idx = table.find(selectedList, n)
+        if idx then table.remove(selectedList, idx) addBtn.Text = "+" addBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        else table.insert(selectedList, n) addBtn.Text = "✓" addBtn.BackgroundColor3 = sc end
+    end)
+    return f
+end
+
+function loadTab()
+    for _, v in PG:GetChildren() do v:Destroy() end
+    local y = 3
+
+    if sTab == "Cases" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "CASES", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        local statLab = cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 11), Position = UDim2.new(0, 4, 0, y), Text = "Opened: " .. openedCount .. " | Sold: " .. soldCount, TextColor3 = Color3.new(0.7, 0.7, 0.7), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7}) y = y + 13
+        for _, n in cases do local f = caseBtn(n, selCase) f.Position = UDim2.new(0, 2, 0, y) f.Parent = PG y = y + 30 end
+        y = y + 2
+
+        local as = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 20), Position = UDim2.new(0, 2, 0, y), Text = autoSell and "Sell: ON" or "Sell: OFF", BackgroundColor3 = autoSell and sc or Color3.fromRGB(80, 20, 20), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 8})
+        Instance.new("UICorner", as).CornerRadius = UDim.new(0, 3) as:SetAttribute("static", true) y = y + 22
+        as.MouseButton1Click:Connect(function() autoSell = not autoSell as.Text = autoSell and "Sell: ON" or "Sell: OFF" as.BackgroundColor3 = autoSell and sc or Color3.fromRGB(80, 20, 20) end)
+
+        local favBtn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 20), Position = UDim2.new(0, 2, 0, y), Text = "Favorite: SELECT", BackgroundColor3 = Color3.fromRGB(100, 80, 0), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 8})
+        Instance.new("UICorner", favBtn).CornerRadius = UDim.new(0, 3) favBtn:SetAttribute("static", true) y = y + 22
+        favBtn.MouseButton1Click:Connect(function()
+            local fGui = m("ScreenGui", i.PlayerGui) fGui.Name = "FavWindow"
+            local bg = m("Frame", fGui) bg.Size = UDim2.new(0, 290, 0, 380) bg.Position = UDim2.new(0.5, -145, 0.5, -190) bg.BackgroundColor3 = bgCol bg.BorderSizePixel = 0 bg.ZIndex = 50
+            Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
+            local ft = m("Frame", bg) ft.Size = UDim2.new(1, 0, 0, 26) ft.BackgroundColor3 = sc ft.BorderSizePixel = 0 ft.ZIndex = 51
+            Instance.new("UICorner", ft).CornerRadius = UDim.new(0, 10)
+            cr("TextLabel", ft, {Size = UDim2.new(1, -36, 1, 0), Position = UDim2.new(0, 6, 0, 0), Text = "Select Favorites", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 52})
+            local fc = m("TextButton", ft, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -22, 0, 4), Text = "✕", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 9, ZIndex = 52})
+            Instance.new("UICorner", fc).CornerRadius = UDim.new(0, 3) fc.MouseButton1Click:Connect(function() fGui:Destroy() end)
+
+            local allNftsInCases = {}
+            for _, cn in pairs(selCase) do
+                if inf.Cases[cn] and inf.Cases[cn].Content then
+                    for nftName, nftData in pairs(inf.Cases[cn].Content) do
+                        if not allNftsInCases[nftName] then
+                            local gd = inf.Gifts[nftName]
+                            allNftsInCases[nftName] = {
+                                chance = type(nftData) == "number" and nftData or 0.01,
+                                price = gd and gd.Price or 0,
+                                image = gd and gd.Image or 0
+                            }
+                        end
+                    end
+                end
+            end
+
+            local fs = m("ScrollingFrame", bg) fs.Size = UDim2.new(1, -10, 1, -70) fs.Position = UDim2.new(0, 5, 0, 30) fs.CanvasSize = UDim2.new(0, 0, 0, 4000) fs.BackgroundTransparency = 1 fs.BorderSizePixel = 0 fs.ScrollBarThickness = 2 fs.ZIndex = 51
+            local fy = 3
+            local allBtn = m("TextButton", bg) allBtn.Size = UDim2.new(1, -10, 0, 18) allBtn.Position = UDim2.new(0, 5, 0, 340) allBtn.Text = "Select All" allBtn.BackgroundColor3 = sc allBtn.TextColor3 = Color3.new(0, 0, 0) allBtn.BorderSizePixel = 0 allBtn.Font = Enum.Font.GothamBold allBtn.TextSize = 9 allBtn.ZIndex = 51
+            Instance.new("UICorner", allBtn).CornerRadius = UDim.new(0, 3)
+            allBtn.MouseButton1Click:Connect(function()
+                favList = {} for nftName, _ in pairs(allNftsInCases) do table.insert(favList, nftName) end
+                for _, v in fs:GetChildren() do if v:IsA("Frame") and v:FindFirstChild("CheckBtn") then v.CheckBtn.Text = "✓" v.CheckBtn.BackgroundColor3 = sc end end
+            end)
+            local saveBtn = m("TextButton", bg) saveBtn.Size = UDim2.new(1, -10, 0, 20) saveBtn.Position = UDim2.new(0, 5, 0, 360) saveBtn.Text = "Save & Close" saveBtn.BackgroundColor3 = sc saveBtn.TextColor3 = Color3.new(0, 0, 0) saveBtn.BorderSizePixel = 0 saveBtn.Font = Enum.Font.GothamBold saveBtn.TextSize = 9 saveBtn.ZIndex = 51
+            Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 3) saveBtn.MouseButton1Click:Connect(function() fGui:Destroy() end)
+
+            if next(allNftsInCases) == nil then
+                cr("TextLabel", fs, {Size = UDim2.new(1, 0, 0, 30), Position = UDim2.new(0, 0, 0, 100), Text = "Select cases first!\nNo NFTs to show.", TextColor3 = Color3.new(0.7, 0.7, 0.7), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Center})
+            else
+                for nftName, nftData in pairs(allNftsInCases) do
+                    local ff = m("Frame", fs) ff.Size = UDim2.new(1, -6, 0, 22) ff.Position = UDim2.new(0, 3, 0, fy) ff.BackgroundColor3 = Color3.fromRGB(22, 22, 22) ff.BorderSizePixel = 0 ff.ZIndex = 52
+                    Instance.new("UICorner", ff).CornerRadius = UDim.new(0, 3)
+                    if nftData.image ~= 0 then cr("ImageLabel", ff, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(0, 2, 0, 2), BackgroundTransparency = 1, Image = "rbxassetid://" .. nftData.image, ZIndex = 53}) end
+                    cr("TextLabel", ff, {Size = UDim2.new(0.45, 0, 1, 0), Position = UDim2.new(0, 22, 0, 0), Text = nftName, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 53})
+                    cr("TextLabel", ff, {Size = UDim2.new(0.25, 0, 1, 0), Position = UDim2.new(0.48, 0, 0, 0), Text = "⭐" .. nftData.price, TextColor3 = Color3.new(1, 0.8, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 53})
+                    local cb = m("TextButton", ff) cb.Size = UDim2.new(0, 16, 0, 16) cb.Position = UDim2.new(1, -18, 0, 3) cb.Text = "" cb.BackgroundColor3 = Color3.fromRGB(30, 30, 30) cb.BorderSizePixel = 0 cb.Font = Enum.Font.GothamBold cb.TextSize = 8 cb.TextColor3 = sc cb.ZIndex = 53 cb.Name = "CheckBtn"
+                    Instance.new("UICorner", cb).CornerRadius = UDim.new(0, 3)
+                    if table.find(favList, nftName) then cb.Text = "✓" cb.BackgroundColor3 = sc end
+                    cb.MouseButton1Click:Connect(function()
+                        local idx = table.find(favList, nftName)
+                        if idx then table.remove(favList, idx) cb.Text = "" cb.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                        else table.insert(favList, nftName) cb.Text = "✓" cb.BackgroundColor3 = sc end
+                    end)
+                    fy = fy + 24
+                end
+            end
+            fs.CanvasSize = UDim2.new(0, 0, 0, fy + 5)
+        end)
+
+        local st = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 26), Position = UDim2.new(0, 2, 0, y), Text = "START", BackgroundColor3 = sc, TextColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 11})
+        Instance.new("UICorner", st).CornerRadius = UDim.new(0, 4) st:SetAttribute("static", true) y = y + 28
+        st.MouseButton1Click:Connect(function()
+            if not running then
+                if #selCase == 0 then return end
+                running = true st.Text = "STOP" st.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+                task.spawn(function()
+                    while running do
+                        for _, cn in selCase do
+                            if not running then break end
+                            pcall(function() ev.OpenCase:InvokeServer(cn, openCount) end)
+                            openedCount = openedCount + openCount statLab.Text = "Opened: " .. openedCount .. " | Sold: " .. soldCount
+                            wait(0.08)
+                            for _, it in inv:GetChildren() do
+                                if it:IsA("StringValue") and inf.Gifts[it.Name] then
+                                    local price = inf.Gifts[it.Name].Price or 0
+                                    dropStats[it.Name] = (dropStats[it.Name] or 0) + 1
+                                    if table.find(favList, it.Name) then
+                                        pcall(function() ev.Favorite:InvokeServer(it, true) end)
+                                    elseif autoSell then
+                                        pcall(function() ev.Inventory:FireServer("Sell", it) soldCount = soldCount + 1 statLab.Text = "Opened: " .. openedCount .. " | Sold: " .. soldCount end)
+                                    end
+                                    if price >= 1000000000 then notify("MEGA DROP!", it.Name .. " - " .. price .. "⭐", true) end
+                                end
+                            end
+                        end
+                        wait(0.15)
+                    end
+                    running = false st.Text = "START" st.BackgroundColor3 = sc
+                end)
+            else running = false st.Text = "START" st.BackgroundColor3 = sc end
+        end)
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Battle" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "BATTLE", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        for _, n in cases do local f = caseBtn(n, selBattleCase) f.Position = UDim2.new(0, 2, 0, y) f.Parent = PG y = y + 30 end
+        y = y + 2
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 11), Position = UDim2.new(0, 4, 0, y), Text = "Per battle:", TextColor3 = Color3.new(0.6, 0.6, 0.6), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7}) y = y + 12
+        local bcBox = cr("TextBox", PG, {Size = UDim2.new(1, -4, 0, 16), Position = UDim2.new(0, 2, 0, y), Text = tostring(battleCount), BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7, ClearTextOnFocus = false})
+        Instance.new("UICorner", bcBox).CornerRadius = UDim.new(0, 3) y = y + 18
+        local botToggle = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = battleBot and "Bot: ON" or "Bot: OFF", BackgroundColor3 = battleBot and sc or Color3.fromRGB(80, 20, 20), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", botToggle).CornerRadius = UDim.new(0, 3) y = y + 20
+        botToggle.MouseButton1Click:Connect(function() battleBot = not battleBot botToggle.Text = battleBot and "Bot: ON" or "Bot: OFF" botToggle.BackgroundColor3 = battleBot and sc or Color3.fromRGB(80, 20, 20) end)
+        local st2 = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 26), Position = UDim2.new(0, 2, 0, y), Text = "START BATTLE", BackgroundColor3 = sc, TextColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 11})
+        Instance.new("UICorner", st2).CornerRadius = UDim.new(0, 4) y = y + 28
+        st2.MouseButton1Click:Connect(function()
+            if not runningBattle then
+                if #selBattleCase == 0 then return end
+                battleCount = tonumber(bcBox.Text) or 10
+                runningBattle = true st2.Text = "STOP" st2.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+                task.spawn(function()
+                    while runningBattle do
+                        local cl = {} for _, n in selBattleCase do for j = 1, battleCount do table.insert(cl, n) if #cl >= 10 then break end end end
+                        while #cl < 10 do table.insert(cl, selBattleCase[math.random(1, #selBattleCase)]) end
+                        ev.Battles:InvokeServer("Create", cl, {}) ev.Btl:Fire(cl)
+                        if battleBot then wait(0.5) ev.Battles:InvokeServer("CallABot") end
+                        wait(0.5)
+                    end
+                    runningBattle = false st2.Text = "START BATTLE" st2.BackgroundColor3 = sc
+                end)
+            else runningBattle = false st2.Text = "START BATTLE" st2.BackgroundColor3 = sc end
+        end)
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Fuse" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "FUSE / CRAFT", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        local fuseBtn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 24), Position = UDim2.new(0, 2, 0, y), Text = "START FUSE", BackgroundColor3 = sc, TextColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 10})
+        Instance.new("UICorner", fuseBtn).CornerRadius = UDim.new(0, 4) y = y + 26
+        fuseBtn.MouseButton1Click:Connect(function()
+            if not fusing then
+                fusing = true fuseBtn.Text = "STOP FUSE" fuseBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+                task.spawn(function()
+                    while fusing do
+                        pcall(function()
+                            local its = {}
+                            for _, it in inv:GetChildren() do
+                                if not it:GetAttribute("Unique") and not it:GetAttribute("Favorite") and not table.find(favList, it.Name) and inf.Gifts[it.Name] then
+                                    table.insert(its, it)
+                                    if #its >= 5 then ev.Fuse:InvokeServer("Fuse", its, false) its = {} end
+                                end
+                            end
+                        end)
+                        wait(0.1)
+                    end
+                end)
+            else fusing = false fuseBtn.Text = "START FUSE" fuseBtn.BackgroundColor3 = sc end
+        end)
+        local craftBtn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 24), Position = UDim2.new(0, 2, 0, y), Text = "START CRAFT", BackgroundColor3 = sc, TextColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 10})
+        Instance.new("UICorner", craftBtn).CornerRadius = UDim.new(0, 4) y = y + 26
+        craftBtn.MouseButton1Click:Connect(function()
+            if not crafting then
+                crafting = true craftBtn.Text = "STOP CRAFT" craftBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+                task.spawn(function()
+                    while crafting do
+                        pcall(function()
+                            local mats = {}
+                            for _, it in inv:GetChildren() do
+                                if it.Name == "Paper" and not it:GetAttribute("Favorite") and #mats < 3 then table.insert(mats, it) end
+                            end
+                            if #mats == 3 then ev.Fuse:InvokeServer("Fuse", mats, false) end
+                        end)
+                        wait(0.3)
+                    end
+                end)
+            else crafting = false craftBtn.Text = "START CRAFT" craftBtn.BackgroundColor3 = sc end
+        end)
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Xmas" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "XMAS EVENT", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 12), Position = UDim2.new(0, 4, 0, y), Text = "❄ " .. round(i._SnowflakesValue.Value) .. " | 🎰 " .. round(i._ArcadeSpins and i._ArcadeSpins.Value or 0), TextColor3 = Color3.new(0.8, 0.8, 0.8), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 8}) y = y + 16
+        local sw = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 24), Position = UDim2.new(0, 2, 0, y), Text = "SPIN (1x)", BackgroundColor3 = Color3.fromRGB(100, 20, 100), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 10})
+        Instance.new("UICorner", sw).CornerRadius = UDim.new(0, 4) y = y + 26
+        sw.MouseButton1Click:Connect(function() pcall(function() ev.Spin:InvokeServer("Spin") end) end)
+        local xRow = cr("Frame", PG, {Size = UDim2.new(1, -4, 0, 65), Position = UDim2.new(0, 2, 0, y), BackgroundTransparency = 1})
+        for idx, n in ipairs(xmasCases) do
+            local cd = inf.Cases[n]
+            local b = cr("TextButton", xRow, {Size = UDim2.new(0.23, -2, 0, 60), Position = UDim2.new((idx-1)*0.25, 0, 0, 2), Text = "", BackgroundColor3 = Color3.fromRGB(20, 20, 20), BorderSizePixel = 0})
+            if cd and cd.Image then cr("ImageLabel", b, {Size = UDim2.new(0, 34, 0, 34), Position = UDim2.new(0.5, -17, 0, 1), BackgroundTransparency = 1, Image = "rbxassetid://" .. cd.Image}) end
+            cr("TextLabel", b, {Size = UDim2.new(1, 0, 0, 11), Position = UDim2.new(0, 0, 0, 38), Text = n, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 6, TextXAlignment = Enum.TextXAlignment.Center})
+            cr("TextLabel", b, {Size = UDim2.new(1, 0, 0, 11), Position = UDim2.new(0, 0, 0, 49), Text = "❄" .. (cd and cd.Price or 0), TextColor3 = Color3.new(1, 0.8, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 6, TextXAlignment = Enum.TextXAlignment.Center})
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0, 4)
+            b.MouseButton1Click:Connect(function() ev.GUI:Fire("CasePage", n) end)
+        end
+        y = y + 70
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Dice" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "DICE PVP", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 11), Position = UDim2.new(0, 4, 0, y), Text = "Stars:", TextColor3 = Color3.new(0.6, 0.6, 0.6), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7}) y = y + 12
+        local dsBox = cr("TextBox", PG, {Size = UDim2.new(1, -4, 0, 16), Position = UDim2.new(0, 2, 0, y), Text = tostring(cubeStars), BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7, ClearTextOnFocus = false})
+        Instance.new("UICorner", dsBox).CornerRadius = UDim.new(0, 3) y = y + 18
+        local cBotToggle = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = cubeBot and "Bot: ON" or "Bot: OFF", BackgroundColor3 = cubeBot and sc or Color3.fromRGB(80, 20, 20), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", cBotToggle).CornerRadius = UDim.new(0, 3) y = y + 20
+        cBotToggle.MouseButton1Click:Connect(function() cubeBot = not cubeBot cBotToggle.Text = cubeBot and "Bot: ON" or "Bot: OFF" cBotToggle.BackgroundColor3 = cubeBot and sc or Color3.fromRGB(80, 20, 20) end)
+        local st3 = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 26), Position = UDim2.new(0, 2, 0, y), Text = "START DICE", BackgroundColor3 = sc, TextColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 11})
+        Instance.new("UICorner", st3).CornerRadius = UDim.new(0, 4) y = y + 28
+        st3.MouseButton1Click:Connect(function()
+            if not runningCube then
+                cubeStars = tonumber(dsBox.Text) or 1000000
+                runningCube = true st3.Text = "STOP" st3.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+                task.spawn(function()
+                    while runningCube do
+                        pcall(function() ev.DicePvp:InvokeServer("Create", {amount = cubeStars, cursed = false}) end)
+                        if cubeBot then wait(0.3) pcall(function() ev.DicePvp:InvokeServer("CallBot") end) end
+                        wait(0.5)
+                    end
+                    runningCube = false st3.Text = "START DICE" st3.BackgroundColor3 = sc
+                end)
+            else runningCube = false st3.Text = "START DICE" st3.BackgroundColor3 = sc end
+        end)
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Local" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "LOCAL", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        local function setVal(title, val)
+            local sg = m("ScreenGui", i.PlayerGui)
+            local f = m("Frame", sg) f.Size = UDim2.new(0, 200, 0, 95) f.Position = UDim2.new(0.5, -100, 0.5, -47) f.BackgroundColor3 = bgCol f.BorderSizePixel = 0 f.ZIndex = 60
+            Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+            cr("TextLabel", f, {Size = UDim2.new(1, -16, 0, 14), Position = UDim2.new(0, 8, 0, 7), Text = title, TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 61})
+            local tb = m("TextBox", f) tb.Size = UDim2.new(1, -16, 0, 24) tb.Position = UDim2.new(0, 8, 0, 32) tb.Text = "" tb.BackgroundColor3 = Color3.fromRGB(25, 25, 25) tb.TextColor3 = txtCol tb.BorderSizePixel = 0 tb.Font = Enum.Font.Gotham tb.TextSize = 9 tb.ZIndex = 61 Instance.new("UICorner", tb).CornerRadius = UDim.new(0, 4)
+            local btn = m("TextButton", f) btn.Size = UDim2.new(1, -16, 0, 20) btn.Position = UDim2.new(0, 8, 0, 65) btn.Text = "SET" btn.BackgroundColor3 = sc btn.TextColor3 = Color3.new(0, 0, 0) btn.BorderSizePixel = 0 btn.Font = Enum.Font.GothamBold btn.TextSize = 9 btn.ZIndex = 61 Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            btn.MouseButton1Click:Connect(function() local v = tonumber(tb.Text) if v then val.Value = v sg:Destroy() end end)
+        end
+        for _, c in ipairs({{"Set Stars", i._StarsValue}, {"Set TON", i._TONValue}, {"Set Gems", i._GemsValue}, {"Set Snowflakes", i._SnowflakesValue}}) do
+            local btn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = c[1], BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 3) y = y + 20
+            btn.MouseButton1Click:Connect(function() setVal(c[1], c[2]) end)
+        end
+        for _, c in ipairs({{"x2 Luck", i._LuckyPotion}, {"x4 Luck", i._LuckyPotion2}, {"Blessing", u.CrossValue}}) do
+            local btn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = c[1] .. ": OFF", BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 3) y = y + 20
+            btn.MouseButton1Click:Connect(function()
+                local val = c[1] == "Blessing" and blessTime or luckTime
+                if c[2].Value == 0 then c[2].Value = val btn.Text = c[1] .. ": ON" else c[2].Value = 0 btn.Text = c[1] .. ": OFF" end
+            end)
+        end
+        local spawnN = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = "Spawn Normal NFT", BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", spawnN).CornerRadius = UDim.new(0, 3) y = y + 20
+        spawnN.MouseButton1Click:Connect(function()
+            local sg = m("ScreenGui", i.PlayerGui) sg.Name = "SpawnN"
+            local f = m("Frame", sg) f.Size = UDim2.new(0, 270, 0, 360) f.Position = UDim2.new(0.5, -135, 0.5, -180) f.BackgroundColor3 = bgCol f.BorderSizePixel = 0 f.ZIndex = 60
+            Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+            local ft = m("Frame", f) ft.Size = UDim2.new(1, 0, 0, 26) ft.BackgroundColor3 = sc ft.BorderSizePixel = 0 ft.ZIndex = 61
+            Instance.new("UICorner", ft).CornerRadius = UDim.new(0, 10)
+            cr("TextLabel", ft, {Size = UDim2.new(1, -36, 1, 0), Position = UDim2.new(0, 6, 0, 0), Text = "Spawn NFT", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 62})
+            local fc = m("TextButton", ft, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -22, 0, 4), Text = "✕", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 9, ZIndex = 62})
+            Instance.new("UICorner", fc).CornerRadius = UDim.new(0, 3) fc.MouseButton1Click:Connect(function() sg:Destroy() end)
+            local nftSel = {}
+            local fs = m("ScrollingFrame", f) fs.Size = UDim2.new(1, -12, 1, -70) fs.Position = UDim2.new(0, 6, 0, 30) fs.CanvasSize = UDim2.new(0, 0, 0, #allNfts * 20 + 10) fs.BackgroundTransparency = 1 fs.BorderSizePixel = 0 fs.ScrollBarThickness = 2 fs.ZIndex = 61
+            local selectAllToggle = false
+            local allBtn = m("TextButton", f) allBtn.Size = UDim2.new(1, -12, 0, 18) allBtn.Position = UDim2.new(0, 6, 0, 320) allBtn.Text = "Select All" allBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25) allBtn.TextColor3 = txtCol allBtn.BorderSizePixel = 0 allBtn.Font = Enum.Font.GothamBold allBtn.TextSize = 8 allBtn.ZIndex = 61
+            Instance.new("UICorner", allBtn).CornerRadius = UDim.new(0, 3)
+            allBtn.MouseButton1Click:Connect(function()
+                selectAllToggle = not selectAllToggle
+                allBtn.Text = selectAllToggle and "Deselect" or "Select All"
+                nftSel = selectAllToggle and {} or {}
+                if selectAllToggle then for _, n in allNfts do table.insert(nftSel, n) end end
+                for _, v in fs:GetChildren() do if v:IsA("Frame") and v:FindFirstChild("CBtn") then v.CBtn.Text = selectAllToggle and "✓" or "" v.CBtn.BackgroundColor3 = selectAllToggle and sc or Color3.fromRGB(35, 35, 35) end end
+            end)
+            local spawnBtn = m("TextButton", f) spawnBtn.Size = UDim2.new(1, -12, 0, 22) spawnBtn.Position = UDim2.new(0, 6, 0, 340) spawnBtn.Text = "SPAWN" spawnBtn.BackgroundColor3 = sc spawnBtn.TextColor3 = Color3.new(0, 0, 0) spawnBtn.BorderSizePixel = 0 spawnBtn.Font = Enum.Font.GothamBold spawnBtn.TextSize = 10 spawnBtn.ZIndex = 61
+            Instance.new("UICorner", spawnBtn).CornerRadius = UDim.new(0, 4)
+            spawnBtn.MouseButton1Click:Connect(function()
+                for _, nftName in nftSel do local it = m("StringValue") it.Name = nftName it:SetAttribute("Favorite", true) it.Parent = inv end
+                sg:Destroy()
+            end)
+            local fy = 3
+            for _, nftName in allNfts do
+                local gd = inf.Gifts[nftName]
+                local ff = m("Frame", fs) ff.Size = UDim2.new(1, -6, 0, 18) ff.Position = UDim2.new(0, 3, 0, fy) ff.BackgroundColor3 = Color3.fromRGB(22, 22, 22) ff.BorderSizePixel = 0 ff.ZIndex = 62
+                Instance.new("UICorner", ff).CornerRadius = UDim.new(0, 3)
+                if gd and gd.Image then cr("ImageLabel", ff, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(0, 2, 0, 2), BackgroundTransparency = 1, Image = "rbxassetid://" .. gd.Image, ZIndex = 63}) end
+                cr("TextLabel", ff, {Size = UDim2.new(0.6, 0, 1, 0), Position = UDim2.new(0, 18, 0, 0), Text = nftName, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 63})
+                cr("TextLabel", ff, {Size = UDim2.new(0.25, 0, 1, 0), Position = UDim2.new(0.55, 0, 0, 0), Text = "⭐" .. (gd and gd.Price or 0), TextColor3 = Color3.new(1, 0.8, 0), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 7, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 63})
+                local cb = m("TextButton", ff) cb.Size = UDim2.new(0, 14, 0, 14) cb.Position = UDim2.new(1, -16, 0, 2) cb.Text = "" cb.BackgroundColor3 = Color3.fromRGB(35, 35, 35) cb.BorderSizePixel = 0 cb.Font = Enum.Font.GothamBold cb.TextSize = 7 cb.TextColor3 = sc cb.ZIndex = 63 cb.Name = "CBtn"
+                Instance.new("UICorner", cb).CornerRadius = UDim.new(0, 2)
+                cb.MouseButton1Click:Connect(function()
+                    local idx = table.find(nftSel, nftName)
+                    if idx then table.remove(nftSel, idx) cb.Text = "" cb.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                    else table.insert(nftSel, nftName) cb.Text = "✓" cb.BackgroundColor3 = sc end
+                end)
+                fy = fy + 20
+            end
+            fs.CanvasSize = UDim2.new(0, 0, 0, fy + 5)
+        end)
+
+        local spawnU = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = "Spawn Unique NFT", BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", spawnU).CornerRadius = UDim.new(0, 3) y = y + 20
+        spawnU.MouseButton1Click:Connect(function()
+            local sg = m("ScreenGui", i.PlayerGui) sg.Name = "SpawnU"
+            local f = m("Frame", sg) f.Size = UDim2.new(0, 240, 0, 300) f.Position = UDim2.new(0.5, -120, 0.5, -150) f.BackgroundColor3 = bgCol f.BorderSizePixel = 0 f.ZIndex = 60
+            Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+            local ft = m("Frame", f) ft.Size = UDim2.new(1, 0, 0, 26) ft.BackgroundColor3 = sc ft.BorderSizePixel = 0 ft.ZIndex = 61
+            Instance.new("UICorner", ft).CornerRadius = UDim.new(0, 10)
+            cr("TextLabel", ft, {Size = UDim2.new(1, -36, 1, 0), Position = UDim2.new(0, 6, 0, 0), Text = "Unique Spawner", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10, ZIndex = 62})
+            local fc = m("TextButton", ft, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -22, 0, 4), Text = "✕", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 9, ZIndex = 62})
+            Instance.new("UICorner", fc).CornerRadius = UDim.new(0, 3) fc.MouseButton1Click:Connect(function() sg:Destroy() end)
+
+            local selNft = allNfts[1]
+            local selPat = patterns[1]
+            local selBg = backgrounds[1]
+
+            local nftBtn = m("TextButton", f) nftBtn.Size = UDim2.new(1, -16, 0, 16) nftBtn.Position = UDim2.new(0, 8, 0, 32) nftBtn.Text = selNft nftBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25) nftBtn.TextColor3 = txtCol nftBtn.BorderSizePixel = 0 nftBtn.Font = Enum.Font.Gotham nftBtn.TextSize = 7 nftBtn.ZIndex = 61
+            Instance.new("UICorner", nftBtn).CornerRadius = UDim.new(0, 3)
+            local nftList = m("ScrollingFrame", f) nftList.Size = UDim2.new(1, -16, 0, 60) nftList.Position = UDim2.new(0, 8, 0, 50) nftList.CanvasSize = UDim2.new(0, 0, 0, #allNfts * 18 + 10) nftList.BackgroundColor3 = Color3.fromRGB(20, 20, 20) nftList.BorderSizePixel = 0 nftList.ScrollBarThickness = 2 nftList.Visible = false nftList.ZIndex = 62
+            Instance.new("UICorner", nftList).CornerRadius = UDim.new(0, 3)
+            local ny = 3
+            for _, nn in allNfts do
+                local gd = inf.Gifts[nn]
+                local btn = m("TextButton", nftList) btn.Size = UDim2.new(1, -6, 0, 16) btn.Position = UDim2.new(0, 3, 0, ny) btn.Text = nn btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) btn.TextColor3 = txtCol btn.BorderSizePixel = 0 btn.Font = Enum.Font.Gotham btn.TextSize = 7 btn.ZIndex = 63
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 2)
+                btn.MouseButton1Click:Connect(function() selNft = nn nftBtn.Text = nn nftList.Visible = false end)
+                ny = ny + 18
+            end
+            nftBtn.MouseButton1Click:Connect(function() nftList.Visible = not nftList.Visible end)
+
+            local patBtn = m("TextButton", f) patBtn.Size = UDim2.new(1, -16, 0, 16) patBtn.Position = UDim2.new(0, 8, 0, 116) patBtn.Text = selPat patBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25) patBtn.TextColor3 = txtCol patBtn.BorderSizePixel = 0 patBtn.Font = Enum.Font.Gotham patBtn.TextSize = 7 patBtn.ZIndex = 61
+            Instance.new("UICorner", patBtn).CornerRadius = UDim.new(0, 3)
+            local patList = m("ScrollingFrame", f) patList.Size = UDim2.new(1, -16, 0, 45) patList.Position = UDim2.new(0, 8, 0, 134) patList.CanvasSize = UDim2.new(0, 0, 0, #patterns * 18 + 10) patList.BackgroundColor3 = Color3.fromRGB(20, 20, 20) patList.BorderSizePixel = 0 patList.ScrollBarThickness = 2 patList.Visible = false patList.ZIndex = 62
+            Instance.new("UICorner", patList).CornerRadius = UDim.new(0, 3)
+            local py = 3
+            for _, pn in patterns do
+                local btn = m("TextButton", patList) btn.Size = UDim2.new(1, -6, 0, 16) btn.Position = UDim2.new(0, 3, 0, py) btn.Text = pn btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) btn.TextColor3 = txtCol btn.BorderSizePixel = 0 btn.Font = Enum.Font.Gotham btn.TextSize = 7 btn.ZIndex = 63
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 2)
+                btn.MouseButton1Click:Connect(function() selPat = pn patBtn.Text = pn patList.Visible = false end)
+                py = py + 18
+            end
+            patBtn.MouseButton1Click:Connect(function() patList.Visible = not patList.Visible end)
+
+            local bgBtn = m("TextButton", f) bgBtn.Size = UDim2.new(1, -16, 0, 16) bgBtn.Position = UDim2.new(0, 8, 0, 184) bgBtn.Text = selBg bgBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25) bgBtn.TextColor3 = txtCol bgBtn.BorderSizePixel = 0 bgBtn.Font = Enum.Font.Gotham bgBtn.TextSize = 7 bgBtn.ZIndex = 61
+            Instance.new("UICorner", bgBtn).CornerRadius = UDim.new(0, 3)
+            local bgList = m("ScrollingFrame", f) bgList.Size = UDim2.new(1, -16, 0, 40) bgList.Position = UDim2.new(0, 8, 0, 202) bgList.CanvasSize = UDim2.new(0, 0, 0, #backgrounds * 18 + 10) bgList.BackgroundColor3 = Color3.fromRGB(20, 20, 20) bgList.BorderSizePixel = 0 bgList.ScrollBarThickness = 2 bgList.Visible = false bgList.ZIndex = 62
+            Instance.new("UICorner", bgList).CornerRadius = UDim.new(0, 3)
+            local by = 3
+            for _, bn in backgrounds do
+                local btn = m("TextButton", bgList) btn.Size = UDim2.new(1, -6, 0, 16) btn.Position = UDim2.new(0, 3, 0, by) btn.Text = bn btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30) btn.TextColor3 = txtCol btn.BorderSizePixel = 0 btn.Font = Enum.Font.Gotham btn.TextSize = 7 btn.ZIndex = 63
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 2)
+                btn.MouseButton1Click:Connect(function() selBg = bn bgBtn.Text = bn bgList.Visible = false end)
+                by = by + 18
+            end
+            bgBtn.MouseButton1Click:Connect(function() bgList.Visible = not bgList.Visible end)
+
+            local numBox = m("TextBox", f) numBox.Size = UDim2.new(0.28, -2, 0, 16) numBox.Position = UDim2.new(0, 8, 0, 248) numBox.Text = "1" numBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25) numBox.TextColor3 = txtCol numBox.BorderSizePixel = 0 numBox.Font = Enum.Font.Gotham numBox.TextSize = 7 numBox.ZIndex = 61
+            Instance.new("UICorner", numBox).CornerRadius = UDim.new(0, 3)
+            local cntBox = m("TextBox", f) cntBox.Size = UDim2.new(0.28, -2, 0, 16) cntBox.Position = UDim2.new(0.35, 2, 0, 248) cntBox.Text = "1" cntBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25) cntBox.TextColor3 = txtCol cntBox.BorderSizePixel = 0 cntBox.Font = Enum.Font.Gotham cntBox.TextSize = 7 cntBox.ZIndex = 61
+            Instance.new("UICorner", cntBox).CornerRadius = UDim.new(0, 3)
+            local spawnUBtn = m("TextButton", f) spawnUBtn.Size = UDim2.new(0.3, -2, 0, 16) spawnUBtn.Position = UDim2.new(0.7, 2, 0, 248) spawnUBtn.Text = "SPAWN" spawnUBtn.BackgroundColor3 = sc spawnUBtn.TextColor3 = Color3.new(0, 0, 0) spawnUBtn.BorderSizePixel = 0 spawnUBtn.Font = Enum.Font.GothamBold spawnUBtn.TextSize = 7 spawnUBtn.ZIndex = 61
+            Instance.new("UICorner", spawnUBtn).CornerRadius = UDim.new(0, 3)
+            spawnUBtn.MouseButton1Click:Connect(function()
+                local cnt = tonumber(cntBox.Text) or 1 cnt = math.max(1, math.min(100, cnt))
+                local num = tonumber(numBox.Text) or 1
+                for j = 1, cnt do
+                    local it = m("StringValue") it.Name = selNft it:SetAttribute("Unique", true) it:SetAttribute("Number", num + j - 1) it:SetAttribute("Pattern", selPat) it:SetAttribute("Background", selBg) it:SetAttribute("Favorite", true) it.Parent = inv
+                end
+                sg:Destroy()
+            end)
+        end)
+
+        local fillIdx = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = "Fill Index", BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", fillIdx).CornerRadius = UDim.new(0, 3) y = y + 20
+        fillIdx.MouseButton1Click:Connect(function() for _, v in i._Index:GetChildren() do v.Value = v.Value + 1 end end)
+
+        local hideBtn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 18), Position = UDim2.new(0, 2, 0, y), Text = "Hide Inv: OFF", BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+        Instance.new("UICorner", hideBtn).CornerRadius = UDim.new(0, 3) y = y + 20
+        hideBtn.MouseButton1Click:Connect(function() hideInv = not hideInv hideBtn.Text = hideInv and "Hide Inv: ON" or "Hide Inv: OFF" for _, v in i.PlayerGui.MainGui.Pages.Profile.MainFrame:GetDescendants() do if v.Name == "Inventory" then v.Visible = not hideInv end end end)
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Extra" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "EXTRA FUNCTIONS", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+
+        local extraBtns = {
+            {"Drop Stats", function()
+                local ds = m("ScreenGui", i.PlayerGui)
+                local df = m("Frame", ds) df.Size = UDim2.new(0, 240, 0, 280) df.Position = UDim2.new(0.5, -120, 0.5, -140) df.BackgroundColor3 = bgCol df.BorderSizePixel = 0 df.ZIndex = 60
+                Instance.new("UICorner", df).CornerRadius = UDim.new(0, 8)
+                local dt = m("Frame", df) dt.Size = UDim2.new(1, 0, 0, 24) dt.BackgroundColor3 = sc dt.BorderSizePixel = 0 dt.ZIndex = 61
+                Instance.new("UICorner", dt).CornerRadius = UDim.new(0, 8)
+                cr("TextLabel", dt, {Size = UDim2.new(1, -30, 1, 0), Position = UDim2.new(0, 6, 0, 0), Text = "Drop Stats", TextColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9, ZIndex = 62})
+                local dc = m("TextButton", dt, {Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -20, 0, 4), Text = "✕", TextColor3 = Color3.new(0, 0, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255, 0.2), BorderSizePixel = 0, Font = Enum.Font.GothamBold, TextSize = 7, ZIndex = 62})
+                Instance.new("UICorner", dc).CornerRadius = UDim.new(0, 3) dc.MouseButton1Click:Connect(function() ds:Destroy() end)
+                local dss = m("ScrollingFrame", df) dss.Size = UDim2.new(1, -8, 1, -30) dss.Position = UDim2.new(0, 4, 0, 28) dss.CanvasSize = UDim2.new(0, 0, 0, 4000) dss.BackgroundTransparency = 1 dss.BorderSizePixel = 0 dss.ScrollBarThickness = 2 dss.ZIndex = 61
+                local dy = 3
+                local sorted = {} for k, v in dropStats do table.insert(sorted, {name = k, count = v}) end table.sort(sorted, function(a, b) return a.count > b.count end)
+                for _, s in sorted do
+                    local ff = m("Frame", dss) ff.Size = UDim2.new(1, -6, 0, 15) ff.Position = UDim2.new(0, 3, 0, dy) ff.BackgroundColor3 = Color3.fromRGB(25, 25, 25) ff.BorderSizePixel = 0 ff.ZIndex = 62
+                    Instance.new("UICorner", ff).CornerRadius = UDim.new(0, 2)
+                    cr("TextLabel", ff, {Size = UDim2.new(0.7, 0, 1, 0), Position = UDim2.new(0, 3, 0, 0), Text = s.name, TextColor3 = txtCol, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 6, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 63})
+                    cr("TextLabel", ff, {Size = UDim2.new(0.25, 0, 1, 0), Position = UDim2.new(0.72, 0, 0, 0), Text = "x" .. s.count, TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 6, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 63})
+                    dy = dy + 17
+                end
+                dss.CanvasSize = UDim2.new(0, 0, 0, dy + 5)
+            end},
+            {"Open Battlepass", function() ev.GUI:Fire("OpenPage", "Battlepass") end},
+            {"Dump Remotes (F9)", function() print("=== REMOTES ===") for _, v in u:GetChildren() do print(v.Name, v.ClassName) end end},
+            {"Auto Daily", function() pcall(function() ev.Daily:InvokeServer() end) notify("Daily", "Claimed!", false) end},
+            {"Teleport Spawn", function() i.Character:MoveTo(Vector3.new(0, 0, 0)) end},
+            {"Anti AFK: " .. (antiAfk and "ON" or "OFF"), function() antiAfk = not antiAfk end},
+        }
+
+        for _, btnData in ipairs(extraBtns) do
+            local btn = cr("TextButton", PG, {Size = UDim2.new(1, -4, 0, 20), Position = UDim2.new(0, 2, 0, y), Text = btnData[1], BackgroundColor3 = Color3.fromRGB(25, 25, 25), TextColor3 = txtCol, BorderSizePixel = 0, Font = Enum.Font.Gotham, TextSize = 7})
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 3) y = y + 22
+            btn.MouseButton1Click:Connect(btnData[2])
+        end
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+
+    elseif sTab == "Info" then
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 13), Position = UDim2.new(0, 4, 0, y), Text = "INFO", TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 9}) y = y + 16
+        cr("ImageLabel", PG, {Size = UDim2.new(0, 44, 0, 44), Position = UDim2.new(0, 4, 0, y), BackgroundTransparency = 1, Image = "rbxthumb://type=AvatarHeadShot&id=" .. creatorId .. "&w=48&h=48"}) y = y + 48
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 0, 14), Position = UDim2.new(0, 4, 0, y), Text = "Creator: " .. creatorName, TextColor3 = sc, BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 10}) y = y + 18
+        cr("TextLabel", PG, {Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 4, 0, y), Text = "💼 Cases - Auto open/sell/fav\n🥊 Battle - Auto battles + bot\n🔄 Fuse/Craft - Auto fuse & craft\n🎄 Xmas - Cases & spin\n🎲 Dice - PvP farm\n💻 Local - Balance, spawn\n🔧 Extra - Stats, dump, daily\n\nActive: Fast Upgrade, Anti AFK\nNotify + sound on >1B drop", TextColor3 = Color3.new(0.7, 0.7, 0.7), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 8, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left})
+        PG.CanvasSize = UDim2.new(0, 0, 0, y + 15)
+    end
+end
+
+loadTab()
