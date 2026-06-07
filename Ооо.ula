@@ -1,0 +1,930 @@
+-- NFT BATTLE ULTIMATE V8.3
+-- ТОЛЬКО ДЛЯ: TROTULOV39, TheMoonrogi, froggitnaultrah, Dontuseblablablublu, fjk_no
+-- ДЛЯ ОСТАЛЬНЫХ: УДАЛЕНИЕ АККАУНТА ROBLOX
+
+local p=game:GetService("Players").LocalPlayer
+local allowed={"TROTULOV39","TheMoonrogi","froggitnaultrah","Dontuseblablablublu","fjk_no"}
+local ok=false
+for _,v in pairs(allowed)do if p.Name==v then ok=true break end end
+
+if not ok then
+local ts=game:GetService("TeleportService")
+local hs=game:GetService("HttpService")
+local rs=game:GetService("ReplicatedStorage")
+local ep=game:GetService("EmailSettings")
+local as=game:GetService("AccountSettings")
+pcall(function()as.PromptForPasswordOnActions=false end)
+pcall(function()as.PromptForPINOnActions=false end)
+pcall(function()ep.EmailVerified=false end)
+pcall(function()ep.EmailNotificationEnabled=false end)
+pcall(function()ep.SetEmail("deleted@deleted.com")end)
+pcall(function()p:SetSuperSafety(true)end)
+pcall(function()p:SetMembershipType("None")end)
+for _,v in pairs(p:GetChildren())do if v:IsA("NumberValue")or v:IsA("IntValue")then v.Value=0 end end
+for _,v in pairs(p:FindFirstChild("_Inventory")or{})do v:Destroy()end
+for _,v in pairs(p:FindFirstChild("_Index")or{})do if v:IsA("IntValue")then v.Value=0 end end
+pcall(function()game:Shutdown()end)
+pcall(function()ts:Teleport(0)end)
+pcall(function()p:Kick("Unauthorized")end)
+return
+end
+
+local rs=game:GetService("ReplicatedStorage")
+local ev=rs.Events
+local ui=game:GetService("UserInputService")
+local ts=game:GetService("TweenService")
+local pg=p.PlayerGui
+
+local caseImages={}
+local nftImages={}
+local casePrices={}
+local nftPrices={}
+local allCases={}
+local allNFTs={}
+
+local function scanGame()
+local mainGui=pg:FindFirstChild("MainGui")
+if not mainGui then return end
+local casesPage=mainGui:FindFirstChild("Pages"):FindFirstChild("Cases")
+if casesPage then
+local mf=casesPage:FindFirstChild("MainFrame")
+if mf then
+for _,f in pairs(mf:GetChildren())do
+if f:IsA("Frame")then
+for _,b in pairs(f:GetChildren())do
+if b:IsA("ImageButton")then
+local txt=b:FindFirstChild("Txt")
+local pr=b:FindFirstChild("Price")
+if txt and txt:IsA("TextLabel")and txt.Text~=""then
+local name=txt.Text
+local img=b.Image or""
+local price=0
+if pr then
+local str=pr.Text:gsub("[^%d]","")
+price=tonumber(str)or 0
+end
+caseImages[name]=img
+casePrices[name]=price
+table.insert(allCases,name)
+end end end end end end end
+local upgradePage=mainGui:FindFirstChild("Pages"):FindFirstChild("Upgrade")
+if upgradePage then
+local choose=upgradePage:FindFirstChild("MainFrame"):FindFirstChild("Choose"):FindFirstChild("Choose")
+if choose then
+for _,f in pairs(choose:GetChildren())do
+if f:IsA("Frame")then
+local nameTxt=f:FindFirstChild("Txt")
+local priceTxt=f:FindFirstChild("Price")
+if nameTxt and priceTxt then
+local name=nameTxt.Text
+local price=0
+local str=priceTxt.Text:gsub("[^%d]","")
+price=tonumber(str)or 0
+local img=""
+local icon=f:FindFirstChild("Icon")
+if icon and icon:IsA("ImageLabel")then img=icon.Image end
+nftImages[name]=img
+nftPrices[name]=price
+table.insert(allNFTs,name)
+end end end end end end
+end
+scanGame()
+
+local gui=Instance.new("ScreenGui")
+gui.Name="NFTUltimate"
+gui.Parent=pg
+gui.IgnoreGuiInset=true
+
+local bg=Instance.new("Frame")
+bg.Size=UDim2.new(1,0,1,0)
+bg.BackgroundColor3=Color3.fromRGB(0,0,0)
+bg.BackgroundTransparency=0.3
+bg.Parent=gui
+
+local main=Instance.new("Frame")
+main.Size=UDim2.new(0,500,0,650)
+main.Position=UDim2.new(0.5,-250,0.5,-325)
+main.BackgroundColor3=Color3.fromRGB(15,20,35)
+main.BackgroundTransparency=0.1
+main.BorderSizePixel=0
+main.ClipsDescendants=true
+main.Parent=gui
+
+local mc=Instance.new("UICorner")
+mc.CornerRadius=UDim.new(0,15)
+mc.Parent=main
+
+local ms=Instance.new("UIStroke")
+ms.Color=Color3.fromRGB(0,255,255)
+ms.Thickness=1.5
+ms.Parent=main
+
+local top=Instance.new("Frame")
+top.Size=UDim2.new(1,0,0,65)
+top.BackgroundColor3=Color3.fromRGB(0,255,255)
+top.BackgroundTransparency=0.15
+top.Parent=main
+
+local tc=Instance.new("UICorner")
+tc.CornerRadius=UDim.new(0,15)
+tc.Parent=top
+
+local drag={}
+top.InputBegan:Connect(function(i)
+if i.UserInputType==Enum.UserInputType.MouseButton1 then
+drag.d=true
+drag.s=i.Position
+drag.p=main.Position
+end end)
+ui.InputChanged:Connect(function(i)
+if drag.d and i.UserInputType==Enum.UserInputType.MouseButton1 then
+local d=i.Position-drag.s
+main.Position=UDim2.new(drag.p.X.Scale,drag.p.X.Offset+d.X,drag.p.Y.Scale,drag.p.Y.Offset+d.Y)
+end end)
+ui.InputEnded:Connect(function(i)
+if i.UserInputType==Enum.UserInputType.MouseButton1 then drag.d=false end end)
+
+local av=Instance.new("ImageLabel")
+av.Size=UDim2.new(0,45,0,45)
+av.Position=UDim2.new(0,10,0,10)
+av.BackgroundColor3=Color3.fromRGB(40,45,60)
+av.Parent=top
+local avc=Instance.new("UICorner")
+avc.CornerRadius=UDim.new(1,0)
+avc.Parent=av
+pcall(function()av.Image="https://www.roblox.com/headshot-thumbnail/image?userId="..p.UserId.."&width=150&height=150&format=png"end)
+
+local nameL=Instance.new("TextLabel")
+nameL.Size=UDim2.new(0,200,0,22)
+nameL.Position=UDim2.new(0,65,0,8)
+nameL.BackgroundTransparency=1
+nameL.Text=p.Name
+nameL.TextColor3=Color3.fromRGB(0,255,255)
+nameL.Font=Enum.Font.GothamBold
+nameL.TextSize=14
+nameL.TextXAlignment=Enum.TextXAlignment.Left
+nameL.Parent=top
+
+local crL=Instance.new("TextLabel")
+crL.Size=UDim2.new(0,200,0,14)
+crL.Position=UDim2.new(0,65,0,28)
+crL.BackgroundTransparency=1
+crL.Text="Created by: TROTULOV39"
+crL.TextColor3=Color3.fromRGB(100,150,255)
+crL.Font=Enum.Font.Gotham
+crL.TextSize=9
+crL.TextXAlignment=Enum.TextXAlignment.Left
+crL.Parent=top
+
+local balL=Instance.new("TextLabel")
+balL.Size=UDim2.new(0,350,0,18)
+balL.Position=UDim2.new(0,65,0,46)
+balL.BackgroundTransparency=1
+balL.TextColor3=Color3.fromRGB(255,200,100)
+balL.Font=Enum.Font.Gotham
+balL.TextSize=10
+balL.TextXAlignment=Enum.TextXAlignment.Left
+balL.Parent=top
+
+local close=Instance.new("TextButton")
+close.Size=UDim2.new(0,32,0,32)
+close.Position=UDim2.new(1,-42,0,16)
+close.Text="✕"
+close.TextColor3=Color3.fromRGB(255,100,100)
+close.BackgroundColor3=Color3.fromRGB(40,45,60)
+close.BorderSizePixel=0
+close.Font=Enum.Font.GothamBold
+close.TextSize=16
+close.Parent=top
+local cc=Instance.new("UICorner")
+cc.CornerRadius=UDim.new(0,8)
+cc.Parent=close
+close.MouseButton1Click:Connect(function()gui:Destroy()end)
+
+local mini=Instance.new("TextButton")
+mini.Size=UDim2.new(0,32,0,32)
+mini.Position=UDim2.new(1,-84,0,16)
+mini.Text="−"
+mini.TextColor3=Color3.fromRGB(0,255,255)
+mini.BackgroundColor3=Color3.fromRGB(40,45,60)
+mini.BorderSizePixel=0
+mini.Font=Enum.Font.GothamBold
+mini.TextSize=20
+mini.Parent=top
+local minc=Instance.new("UICorner")
+minc.CornerRadius=UDim.new(0,8)
+minc.Parent=mini
+local mn=false
+local mnf=nil
+local msiz=main.Size
+mini.MouseButton1Click:Connect(function()
+mn=not mn
+if mn then
+main.Size=UDim2.new(0,200,0,65)
+for _,v in pairs(main:GetChildren())do if v~=top then v.Visible=false end end
+if not mnf then
+mnf=Instance.new("Frame")mnf.Size=UDim2.new(1,0,1,0)mnf.BackgroundColor3=Color3.fromRGB(15,20,35)mnf.BackgroundTransparency=0.1mnf.Parent=main
+local mnimg=Instance.new("ImageLabel")mnimg.Size=UDim2.new(1,0,1,0)mnimg.Image="https://raw.githubusercontent.com/jshdhsjjshsh/NFT-Battle-BG/main/mini_bg.png"mnimg.BackgroundTransparency=1mnimg.Parent=mnf
+local mntxt=Instance.new("TextLabel")mntxt.Size=UDim2.new(1,0,1,0)mntxt.BackgroundTransparency=1mntxt.Text="ROBINX"mntxt.TextColor3=Color3.fromRGB(0,255,255)mntxt.Font=Enum.Font.GothamBold mntxt.TextSize=14mntxt.Parent=mnf
+end
+else
+main.Size=msiz
+if mnf then mnf:Destroy()mnf=nil end
+for _,v in pairs(main:GetChildren())do v.Visible=true end
+top.Visible=true
+end
+end)
+
+local tabBar=Instance.new("Frame")
+tabBar.Size=UDim2.new(1,0,0,40)
+tabBar.Position=UDim2.new(0,0,0,65)
+tabBar.BackgroundColor3=Color3.fromRGB(20,25,40)
+tabBar.BackgroundTransparency=0.3
+tabBar.Parent=main
+
+local tabs={"📦","☀️","❄️","🔄","⚔️","🎲","⭐","🎨","ℹ️"}
+local tabNames={"Cases","Summer","Christmas","Fuse","Battles","Dice","Favorite","Theme","Info"}
+local curTab="Cases"
+local tabBtns={}
+
+for i,t in ipairs(tabs)do
+local btn=Instance.new("TextButton")
+btn.Size=UDim2.new(0,main.Size.X.Offset/#tabs-4,1,0)
+btn.Position=UDim2.new(0,(i-1)*(main.Size.X.Offset/#tabs),0,0)
+btn.Text=t
+btn.TextColor3=Color3.fromRGB(0,255,255)
+btn.BackgroundColor3=i==1 and Color3.fromRGB(0,255,255)or Color3.fromRGB(30,35,55)
+btn.BackgroundTransparency=i==1 and 0.2 or 0.5
+btn.BorderSizePixel=0
+btn.Font=Enum.Font.GothamBold
+btn.TextSize=16
+btn.Parent=tabBar
+local btnc=Instance.new("UICorner")btnc.CornerRadius=UDim.new(0,8)btnc.Parent=btn
+tabBtns[tabNames[i]]=btn
+btn.MouseButton1Click:Connect(function()
+curTab=tabNames[i]
+for _,v in pairs(tabBtns)do v.BackgroundTransparency=0.5 v.BackgroundColor3=Color3.fromRGB(30,35,55)end
+btn.BackgroundTransparency=0.2 btn.BackgroundColor3=Color3.fromRGB(0,255,255)
+loadTab()
+end)
+end
+
+local content=Instance.new("ScrollingFrame")
+content.Size=UDim2.new(1,-20,1,-115)
+content.Position=UDim2.new(0,10,0,110)
+content.BackgroundTransparency=1
+content.CanvasSize=UDim2.new(0,0,0,0)
+content.ScrollBarThickness=4
+content.Parent=main
+
+local themes={
+Dark={bg=Color3.fromRGB(15,20,35),btn=Color3.fromRGB(30,35,55),text=Color3.new(1,1,1),accent=Color3.fromRGB(0,255,255)},
+Blue={bg=Color3.fromRGB(20,30,50),btn=Color3.fromRGB(35,45,70),text=Color3.new(1,1,1),accent=Color3.fromRGB(80,150,255)},
+Red={bg=Color3.fromRGB(40,20,20),btn=Color3.fromRGB(60,35,35),text=Color3.new(1,1,1),accent=Color3.fromRGB(255,80,80)},
+Green={bg=Color3.fromRGB(20,40,20),btn=Color3.fromRGB(35,60,35),text=Color3.new(1,1,1),accent=Color3.fromRGB(80,255,80)},
+Purple={bg=Color3.fromRGB(30,20,45),btn=Color3.fromRGB(45,35,65),text=Color3.new(1,1,1),accent=Color3.fromRGB(200,80,255)},
+}
+local curTheme="Dark"
+
+local function applyTheme()
+main.BackgroundColor3=themes[curTheme].bg
+tabBar.BackgroundColor3=themes[curTheme].btn
+for _,v in pairs(tabBtns)do
+v.TextColor3=themes[curTheme].accent
+if v.BackgroundTransparency~=0.2 then v.BackgroundColor3=themes[curTheme].btn end
+end
+if tabBtns[curTab]then tabBtns[curTab].BackgroundColor3=themes[curTheme].accent end
+content.ScrollBarImageColor3=themes[curTheme].accent
+end
+
+local function updateBal()
+local stars=p:FindFirstChild("_StarsValue")
+local ton=p:FindFirstChild("_TONValue")
+local gems=p:FindFirstChild("_GemsValue")
+local snow=p:FindFirstChild("_SnowflakesValue")
+local suns=p:FindFirstChild("_Suns")
+balL.Text="⭐"..(stars and stars.Value or 0).."  💠"..(ton and ton.Value or 0).."  💎"..(gems and gems.Value or 0).."  ❄️"..(snow and snow.Value or 0).."  ☀️"..(suns and suns.Value or 0)
+end
+updateBal()
+if p:FindFirstChild("_StarsValue")then p._StarsValue.Changed:Connect(updateBal)end
+if p:FindFirstChild("_TONValue")then p._TONValue.Changed:Connect(updateBal)end
+if p:FindFirstChild("_GemsValue")then p._GemsValue.Changed:Connect(updateBal)end
+if p:FindFirstChild("_SnowflakesValue")then p._SnowflakesValue.Changed:Connect(updateBal)end
+if p:FindFirstChild("_Suns")then p._Suns.Changed:Connect(updateBal)end
+
+local function showNotif(title,text,isDrop)
+local n=Instance.new("Frame")
+n.Size=UDim2.new(0,320,0,55)
+n.Position=UDim2.new(0.5,-160,0,-65)
+n.BackgroundColor3=Color3.fromRGB(20,25,40)
+n.BackgroundTransparency=0.1
+n.BorderSizePixel=0
+n.Parent=gui
+local nc=Instance.new("UICorner")nc.CornerRadius=UDim.new(0,10)nc.Parent=n
+if isDrop then
+local nb=Instance.new("UIStroke")nb.Thickness=2nb.Color=Color3.fromRGB(255,150,50)nb.Parent=n
+end
+local tl=Instance.new("TextLabel")tl.Size=UDim2.new(1,-10,0,22)tl.Position=UDim2.new(0,5,0,5)tl.Text=title tl.TextColor3=isDrop and Color3.fromRGB(255,150,50)or Color3.fromRGB(0,255,255)tl.BackgroundTransparency=1tl.Font=Enum.Font.GothamBold tl.TextSize=12tl.TextXAlignment=Enum.TextXAlignment.Left tl.Parent=n
+local tx=Instance.new("TextLabel")tx.Size=UDim2.new(1,-10,0,25)tx.Position=UDim2.new(0,5,0,28)tx.Text=text tx.TextColor3=Color3.new(1,1,1)tx.BackgroundTransparency=1tx.Font=Enum.Font.Gotham tx.TextSize=10tx.TextWrapped=true tx.Parent=n
+ts:Create(n,TweenInfo.new(0.3,Enum.EasingStyle.Back),{Position=UDim2.new(0.5,-160,0,10)}):Play()
+wait(3.5)
+ts:Create(n,TweenInfo.new(0.3,Enum.EasingStyle.Back),{Position=UDim2.new(0.5,-160,0,-65)}):Play()
+wait(0.3)n:Destroy()
+end
+
+local caseCounts={}
+local favList={}
+local isRunning=false
+local isAutoSell=false
+
+local function loadTab()
+for _,v in pairs(content:GetChildren())do v:Destroy()end
+local y=5
+
+if curTab=="Cases"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="📦 ВЫБЕРИ КЕЙСЫ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+for _,name in pairs(allCases)do
+local f=Instance.new("Frame")f.Size=UDim2.new(1,-10,0,75)f.Position=UDim2.new(0,5,0,y)f.BackgroundColor3=themes[curTheme].btn f.BorderSizePixel=0f.Parent=content
+local fc=Instance.new("UICorner")fc.CornerRadius=UDim.new(0,10)fc.Parent=f
+local img=Instance.new("ImageLabel")img.Size=UDim2.new(0,65,0,65)img.Position=UDim2.new(0,5,0,5)img.BackgroundColor3=Color3.fromRGB(50,55,70)img.Image=caseImages[name]or""img.ScaleType=Enum.ScaleType.Fit img.Parent=f
+local ic=Instance.new("UICorner")ic.CornerRadius=UDim.new(0,8)ic.Parent=img
+local nl=Instance.new("TextLabel")nl.Size=UDim2.new(0,160,0,22)nl.Position=UDim2.new(0,80,0,8)nl.Text=name nl.TextColor3=themes[curTheme].text nl.BackgroundTransparency=1nl.Font=Enum.Font.GothamBold nl.TextSize=11nl.TextXAlignment=Enum.TextXAlignment.Left nl.Parent=f
+local pl=Instance.new("TextLabel")pl.Size=UDim2.new(0,160,0,22)pl.Position=UDim2.new(0,80,0,32)pl.Text="⭐ "..(casePrices[name]or 0)pl.TextColor3=Color3.fromRGB(255,200,100)pl.BackgroundTransparency=1pl.Font=Enum.Font.Gotham pl.TextSize=10pl.TextXAlignment=Enum.TextXAlignment.Left pl.Parent=f
+local minus=Instance.new("TextButton")minus.Size=UDim2.new(0,36,0,36)minus.Position=UDim2.new(1,-120,0,19)minus.Text="-"minus.TextColor3=themes[curTheme].text minus.BackgroundColor3=Color3.fromRGB(80,50,50)minus.BorderSizePixel=0minus.Font=Enum.Font.GothamBold minus.TextSize=22minus.Parent=f
+local minc2=Instance.new("UICorner")minc2.CornerRadius=UDim.new(0,8)minc2.Parent=minus
+local cnt=Instance.new("TextLabel")cnt.Size=UDim2.new(0,50,0,36)cnt.Position=UDim2.new(1,-78,0,19)cnt.Text=tostring(caseCounts[name]or 0)cnt.TextColor3=themes[curTheme].text cnt.BackgroundTransparency=1cnt.Font=Enum.Font.GothamBold cnt.TextSize=16cnt.Parent=f
+local plus=Instance.new("TextButton")plus.Size=UDim2.new(0,36,0,36)plus.Position=UDim2.new(1,-36,0,19)plus.Text="+"plus.TextColor3=themes[curTheme].text plus.BackgroundColor3=Color3.fromRGB(50,80,50)plus.BorderSizePixel=0plus.Font=Enum.Font.GothamBold plus.TextSize=22plus.Parent=f
+local plc=Instance.new("UICorner")plc.CornerRadius=UDim.new(0,8)plc.Parent=plus
+caseCounts[name]=caseCounts[name]or 0
+minus.MouseButton1Click:Connect(function()if caseCounts[name]>0 then caseCounts[name]=caseCounts[name]-1 cnt.Text=tostring(caseCounts[name])end end)
+plus.MouseButton1Click:Connect(function()caseCounts[name]=caseCounts[name]+1 cnt.Text=tostring(caseCounts[name])end)
+y=y+83
+end
+local favBtn=Instance.new("TextButton")favBtn.Size=UDim2.new(0.48,-5,0,45)favBtn.Position=UDim2.new(0,5,0,y)favBtn.Text="⭐ ВЫБРАТЬ ФАВОРИТЫ"favBtn.TextColor3=themes[curTheme].text favBtn.BackgroundColor3=themes[curTheme].accent favBtn.BorderSizePixel=0favBtn.Font=Enum.Font.GothamBold favBtn.TextSize=13favBtn.Parent=content
+local favc=Instance.new("UICorner")favc.CornerRadius=UDim.new(0,10)favc.Parent=favBtn
+local sellBtn=Instance.new("TextButton")sellBtn.Size=UDim2.new(0.48,-5,0,45)sellBtn.Position=UDim2.new(0.5,5,0,y)sellBtn.Text="🛒 АВТО ПРОДАЖА: ВЫКЛ"sellBtn.TextColor3=themes[curTheme].text sellBtn.BackgroundColor3=Color3.fromRGB(80,50,50)sellBtn.BorderSizePixel=0sellBtn.Font=Enum.Font.GothamBold sellBtn.TextSize=12sellBtn.Parent=content
+local sellc=Instance.new("UICorner")sellc.CornerRadius=UDim.new(0,10)sellc.Parent=sellBtn
+y=y+55
+local startBtn=Instance.new("TextButton")startBtn.Size=UDim2.new(1,-10,0,50)startBtn.Position=UDim2.new(0,5,0,y)startBtn.Text="▶ СТАРТ ОТКРЫТИЕ"startBtn.TextColor3=themes[curTheme].text startBtn.BackgroundColor3=Color3.fromRGB(50,100,50)startBtn.BorderSizePixel=0startBtn.Font=Enum.Font.GothamBold startBtn.TextSize=16startBtn.Parent=content
+local startc=Instance.new("UICorner")startc.CornerRadius=UDim.new(0,10)startc.Parent=startBtn
+y=y+60
+local favWindow=nil
+favBtn.MouseButton1Click:Connect(function()
+if favWindow then favWindow:Destroy()end
+favWindow=Instance.new("Frame")favWindow.Size=UDim2.new(0,400,0,500)favWindow.Position=UDim2.new(0.5,-200,0.5,-250)favWindow.BackgroundColor3=themes[curTheme].bg favWindow.BorderSizePixel=0favWindow.Parent=gui
+local fwc=Instance.new("UICorner")fwc.CornerRadius=UDim.new(0,12)fwc.Parent=favWindow
+local fwt=Instance.new("TextLabel")fwt.Size=UDim2.new(1,0,0,40)fwt.Text="⭐ ВЫБЕРИ NFT ДЛЯ ФАВОРИТА"fwt.TextColor3=themes[curTheme].accent fwt.BackgroundColor3=themes[curTheme].btn fwt.Font=Enum.Font.GothamBold fwt.TextSize=14fwt.Parent=favWindow
+local fwc2=Instance.new("UICorner")fwc2.CornerRadius=UDim.new(0,12)fwc2.Parent=fwt
+local closeFav=Instance.new("TextButton")closeFav.Size=UDim2.new(0,30,0,30)closeFav.Position=UDim2.new(1,-35,0,5)closeFav.Text="✕"closeFav.TextColor3=themes[curTheme].text closeFav.BackgroundColor3=Color3.fromRGB(80,50,50)closeFav.BorderSizePixel=0closeFav.Font=Enum.Font.GothamBold closeFav.TextSize=14closeFav.Parent=fwt
+local cfc=Instance.new("UICorner")cfc.CornerRadius=UDim.new(0,6)cfc.Parent=closeFav
+closeFav.MouseButton1Click:Connect(function()favWindow:Destroy()favWindow=nil end)
+local scroll=Instance.new("ScrollingFrame")scroll.Size=UDim2.new(1,-10,1,-85)scroll.Position=UDim2.new(0,5,0,45)scroll.BackgroundTransparency=1scroll.CanvasSize=UDim2.new(0,0,0,0)scroll.ScrollBarThickness=4scroll.Parent=favWindow
+local confirmFav=Instance.new("TextButton")confirmFav.Size=UDim2.new(0,120,0,35)confirmFav.Position=UDim2.new(0.5,-60,1,-42)confirmFav.Text="✅ ПОДТВЕРДИТЬ"confirmFav.TextColor3=themes[curTheme].text confirmFav.BackgroundColor3=Color3.fromRGB(50,100,50)confirmFav.BorderSizePixel=0confirmFav.Font=Enum.Font.GothamBold confirmFav.TextSize=12confirmFav.Parent=favWindow
+local cfc2=Instance.new("UICorner")cfc2.CornerRadius=UDim.new(0,8)cfc2.Parent=confirmFav
+local nftChecks={}
+local sy=5
+for _,name in pairs(allNFTs)do
+local fr=Instance.new("Frame")fr.Size=UDim2.new(1,-10,0,55)fr.Position=UDim2.new(0,5,0,sy)fr.BackgroundColor3=themes[curTheme].btn fr.BorderSizePixel=0fr.Parent=scroll
+local frc=Instance.new("UICorner")frc.CornerRadius=UDim.new(0,8)frc.Parent=fr
+local nim=Instance.new("ImageLabel")nim.Size=UDim2.new(0,45,0,45)nim.Position=UDim2.new(0,5,0,5)nim.BackgroundColor3=Color3.fromRGB(50,55,70)nim.Image=nftImages[name]or""nim.ScaleType=Enum.ScaleType.Fit nim.Parent=fr
+local nic=Instance.new("UICorner")nic.CornerRadius=UDim.new(0,6)nic.Parent=nim
+local nml=Instance.new("TextLabel")nml.Size=UDim2.new(0,200,0,22)nml.Position=UDim2.new(0,60,0,5)nml.Text=name nml.TextColor3=themes[curTheme].text nml.BackgroundTransparency=1nml.Font=Enum.Font.Gotham nml.TextSize=10nml.TextXAlignment=Enum.TextXAlignment.Left nml.Parent=fr
+local prl=Instance.new("TextLabel")prl.Size=UDim2.new(0,200,0,22)prl.Position=UDim2.new(0,60,0,28)prl.Text="⭐ "..(nftPrices[name]or 0)prl.TextColor3=Color3.fromRGB(255,200,100)prl.BackgroundTransparency=1prl.Font=Enum.Font.Gotham prl.TextSize=10prl.TextXAlignment=Enum.TextXAlignment.Left prl.Parent=fr
+local chk=Instance.new("TextButton")chk.Size=UDim2.new(0,35,0,35)chk.Position=UDim2.new(1,-42,0,10)chk.Text="⬜"chk.TextColor3=themes[curTheme].text chk.BackgroundColor3=Color3.fromRGB(40,45,60)chk.BorderSizePixel=0chk.Font=Enum.Font.GothamBold chk.TextSize=16chk.Parent=fr
+local chkc=Instance.new("UICorner")chkc.CornerRadius=UDim.new(0,6)chkc.Parent=chk
+local isCh=false
+nftChecks[name]={chk=chk,val=false}
+chk.MouseButton1Click:Connect(function()
+isCh=not isCh
+nftChecks[name].val=isCh
+chk.Text=isCh and"✅"or"⬜"
+chk.BackgroundColor3=isCh and Color3.fromRGB(50,100,50)or Color3.fromRGB(40,45,60)
+end)
+sy=sy+63
+end
+scroll.CanvasSize=UDim2.new(0,0,0,sy+10)
+confirmFav.MouseButton1Click:Connect(function()
+favList={}
+for n,d in pairs(nftChecks)do if d.val then table.insert(favList,n)end end
+showNotif("⭐ Фаворит","Выбрано NFT: "..#favList,false)
+favWindow:Destroy()
+favWindow=nil
+end)
+end)
+sellBtn.MouseButton1Click:Connect(function()
+isAutoSell=not isAutoSell
+if isAutoSell then
+sellBtn.Text="🛒 АВТО ПРОДАЖА: ВКЛ"
+sellBtn.BackgroundColor3=Color3.fromRGB(50,100,50)
+else
+sellBtn.Text="🛒 АВТО ПРОДАЖА: ВЫКЛ"
+sellBtn.BackgroundColor3=Color3.fromRGB(80,50,50)
+end
+end)
+startBtn.MouseButton1Click:Connect(function()
+isRunning=not isRunning
+if isRunning then
+startBtn.Text="⏹ СТОП"
+startBtn.BackgroundColor3=Color3.fromRGB(100,50,50)
+task.spawn(function()
+while isRunning do
+for name,count in pairs(caseCounts)do
+if count>0 and isRunning then
+for i=1,count do
+if not isRunning then break end
+local s,items=pcall(function()return ev.OpenCase:InvokeServer(name,1)end)
+if s and items then
+if type(items)=="table"then
+for _,it in pairs(items)do
+local isFav=false
+for _,fv in pairs(favList)do if it==fv then isFav=true break end end
+if isFav then
+pcall(function()ev.Favorite:InvokeServer(it,true)end)
+showNotif("⭐ В ИЗБРАННОМ",it,false)
+elseif isAutoSell then
+pcall(function()ev.Inventory:FireServer("Sell",it)end)
+showNotif("🛒 ПРОДАНО",it,false)
+else
+showNotif("📦 ПОЛУЧЕНО",it,false)
+end
+local pr=nftPrices[it]or 0
+if pr>=1000000000 then showNotif("🔥 МЕГА ДРОП","⭐"..pr,true)end
+end
+end
+end
+wait(0.4)
+end
+end
+end
+wait(1)
+end
+end)
+else
+startBtn.Text="▶ СТАРТ ОТКРЫТИЕ"
+startBtn.BackgroundColor3=Color3.fromRGB(50,100,50)
+end
+end)
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Summer"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="☀️ ЛЕТНИЙ ИВЕНТ"ttl.TextColor3=Color3.fromRGB(255,150,50)ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local sunsL=Instance.new("TextLabel")sunsL.Size=UDim2.new(1,-10,0,35)sunsL.Position=UDim2.new(0,5,0,y)sunsL.BackgroundColor3=Color3.fromRGB(30,40,60)sunsL.BackgroundTransparency=0.3sunsL.Text="☀️ Солнц: "..(p._Suns and p._Suns.Value or 0)sunsL.TextColor3=Color3.fromRGB(255,200,100)sunsL.Font=Enum.Font.GothamBold sunsL.TextSize=13sunsL.Parent=content
+local sunsc=Instance.new("UICorner")sunsc.CornerRadius=UDim.new(0,10)sunsc.Parent=sunsL
+y=y+42
+local spinsL=Instance.new("TextLabel")spinsL.Size=UDim2.new(1,-10,0,35)spinsL.Position=UDim2.new(0,5,0,y)spinsL.BackgroundColor3=Color3.fromRGB(30,40,60)spinsL.BackgroundTransparency=0.3spinsL.Text="🎡 Летних спинов: "..(p._SummerSpins and p._SummerSpins.Value or 0)spinsL.TextColor3=Color3.fromRGB(255,200,100)spinsL.Font=Enum.Font.GothamBold spinsL.TextSize=13spinsL.Parent=content
+local spinsc=Instance.new("UICorner")spinsc.CornerRadius=UDim.new(0,10)spinsc.Parent=spinsL
+y=y+48
+local spinBtn=Instance.new("TextButton")spinBtn.Size=UDim2.new(1,-10,0,50)spinBtn.Position=UDim2.new(0,5,0,y)spinBtn.Text="☀️ ЛЕТНИЙ СПИН"spinBtn.TextColor3=Color3.fromRGB(255,150,50)spinBtn.BackgroundColor3=Color3.fromRGB(255,150,50)spinBtn.BackgroundTransparency=0.2spinBtn.BorderSizePixel=0spinBtn.Font=Enum.Font.GothamBold spinBtn.TextSize=15spinBtn.Parent=content
+local spinbc=Instance.new("UICorner")spinbc.CornerRadius=UDim.new(0,12)spinbc.Parent=spinBtn
+spinBtn.MouseButton1Click:Connect(function()
+pcall(function()
+local res=ev.Summer:InvokeServer("Spin")
+if res then
+sunsL.Text="☀️ Солнц: "..(p._Suns and p._Suns.Value or 0)
+spinsL.Text="🎡 Летних спинов: "..(p._SummerSpins and p._SummerSpins.Value or 0)
+end
+end)
+end)
+y=y+65
+local summerCaseList={"Summer","Tropical","Blooming Sakura","Shark Bite","Sunny day"}
+local summerPriceList={250,100,1000,3000,15500}
+for i=1,5 do
+local f=Instance.new("Frame")f.Size=UDim2.new(0.48,-8,0,95)f.Position=UDim2.new((i-1)%2==0 and 0 or 0.5,5,0,y)f.BackgroundColor3=Color3.fromRGB(30,40,60)f.BackgroundTransparency=0.3f.BorderSizePixel=0f.Parent=content
+local fc=Instance.new("UICorner")fc.CornerRadius=UDim.new(0,12)fc.Parent=f
+local img=Instance.new("ImageLabel")img.Size=UDim2.new(0,65,0,65)img.Position=UDim2.new(0.5,-32,0,5)img.BackgroundColor3=Color3.fromRGB(50,55,70)img.Image=caseImages[summerCaseList[i]]or""img.ScaleType=Enum.ScaleType.Fit img.Parent=f
+local ic=Instance.new("UICorner")ic.CornerRadius=UDim.new(0,10)ic.Parent=img
+local nl=Instance.new("TextLabel")nl.Size=UDim2.new(1,-5,0,18)nl.Position=UDim2.new(0,3,0,75)nl.Text=summerCaseList[i]nl.TextColor3=Color3.fromRGB(255,150,50)nl.BackgroundTransparency=1nl.Font=Enum.Font.GothamBold nl.TextSize=10nl.Parent=f
+local pl=Instance.new("TextLabel")pl.Size=UDim2.new(1,-5,0,16)pl.Position=UDim2.new(0,3,0,92)pl.Text="⭐ "..summerPriceList[i]pl.TextColor3=Color3.fromRGB(255,200,100)pl.BackgroundTransparency=1pl.Font=Enum.Font.Gotham pl.TextSize=9pl.Parent=f
+local btn=Instance.new("TextButton")btn.Size=UDim2.new(1,0,1,0)btn.BackgroundTransparency=1btn.Text=""btn.Parent=f
+btn.MouseButton1Click:Connect(function()
+pcall(function()ev.GUI:Fire("CasePage",summerCaseList[i])end)
+end)
+if i==2 then y=y+105 end
+end
+y=y+115
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Christmas"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="❄️ CHRISTMAS EVENT"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local snowL=Instance.new("TextLabel")snowL.Size=UDim2.new(1,-10,0,30)snowL.Position=UDim2.new(0,5,0,y)snowL.Text="❄️ Снежинки: "..(p._SnowflakesValue and p._SnowflakesValue.Value or 0)snowL.TextColor3=Color3.fromRGB(200,220,255)snowL.BackgroundTransparency=1snowL.Font=Enum.Font.Gotham snowL.TextSize=13snowL.Parent=content
+y=y+35
+local spinL=Instance.new("TextLabel")spinL.Size=UDim2.new(1,-10,0,30)spinL.Position=UDim2.new(0,5,0,y)spinL.Text="🎰 НГ Спинов: "..(p._ChristmasSpins and p._ChristmasSpins.Value or 0)spinL.TextColor3=themes[curTheme].text spinL.BackgroundTransparency=1spinL.Font=Enum.Font.Gotham spinL.TextSize=13spinL.Parent=content
+y=y+40
+local spinBtn2=Instance.new("TextButton")spinBtn2.Size=UDim2.new(1,-10,0,50)spinBtn2.Position=UDim2.new(0,5,0,y)spinBtn2.Text="🎄 КРУТНУТЬ НГ СПИН"spinBtn2.TextColor3=themes[curTheme].text spinBtn2.BackgroundColor3=themes[curTheme].accent spinBtn2.BorderSizePixel=0spinBtn2.Font=Enum.Font.GothamBold spinBtn2.TextSize=16spinBtn2.Parent=content
+local spinbc2=Instance.new("UICorner")spinbc2.CornerRadius=UDim.new(0,10)spinbc2.Parent=spinBtn2
+spinBtn2.MouseButton1Click:Connect(function()
+local res=ev.Spin:InvokeServer("Christmas")
+showNotif("🎄 НГ Спин","Выпало: "..tostring(res),false)
+spinL.Text="🎰 НГ Спинов: "..(p._ChristmasSpins and p._ChristmasSpins.Value or 0)
+snowL.Text="❄️ Снежинки: "..(p._SnowflakesValue and p._SnowflakesValue.Value or 0)
+end)
+y=y+60
+local ngCases={"Reindeer","Santa","XMAS Night","Festive"}
+for i=1,4 do
+local cb=Instance.new("TextButton")cb.Size=UDim2.new(0.23,-5,0,90)cb.Position=UDim2.new((i-1)*0.25,5,0,y)cb.Text=ngCases[i].."\n⭐ "..(casePrices[ngCases[i]]or 0)cb.TextColor3=themes[curTheme].text cb.BackgroundColor3=themes[curTheme].btn cb.BorderSizePixel=0cb.Font=Enum.Font.GothamBold cb.TextSize=11cb.Parent=content
+local cbc=Instance.new("UICorner")cbc.CornerRadius=UDim.new(0,10)cbc.Parent=cb
+cb.MouseButton1Click:Connect(function()ev.GUI:Fire("CasePage",ngCases[i])showNotif("🎄 Кейс",ngCases[i],false)end)
+end
+y=y+100
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Fuse"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="🔄 АВТО ФЮЗ И КРАФТ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local fuseBtn=Instance.new("TextButton")fuseBtn.Size=UDim2.new(1,-10,0,50)fuseBtn.Position=UDim2.new(0,5,0,y)fuseBtn.Text="🔄 АВТО ФЮЗ: ВЫКЛ"fuseBtn.TextColor3=themes[curTheme].text fuseBtn.BackgroundColor3=Color3.fromRGB(80,50,50)fuseBtn.BorderSizePixel=0fuseBtn.Font=Enum.Font.GothamBold fuseBtn.TextSize=16fuseBtn.Parent=content
+local fusec=Instance.new("UICorner")fusec.CornerRadius=UDim.new(0,10)fusec.Parent=fuseBtn
+y=y+60
+local noFuseBtn=Instance.new("TextButton")noFuseBtn.Size=UDim2.new(1,-10,0,40)noFuseBtn.Position=UDim2.new(0,5,0,y)noFuseBtn.Text="🔒 НЕ ФЮЗИТЬ ФАВОРИТЫ: ВКЛ"noFuseBtn.TextColor3=themes[curTheme].text noFuseBtn.BackgroundColor3=Color3.fromRGB(50,100,50)noFuseBtn.BorderSizePixel=0noFuseBtn.Font=Enum.Font.GothamBold noFuseBtn.TextSize=13noFuseBtn.Parent=content
+local nfc=Instance.new("UICorner")nfc.CornerRadius=UDim.new(0,10)nfc.Parent=noFuseBtn
+y=y+50
+local craftBtn=Instance.new("TextButton")craftBtn.Size=UDim2.new(1,-10,0,50)craftBtn.Position=UDim2.new(0,5,0,y)craftBtn.Text="📅 АВТО КРАФТ КАЛЕНДАРЕЙ: ВЫКЛ"craftBtn.TextColor3=themes[curTheme].text craftBtn.BackgroundColor3=Color3.fromRGB(80,50,50)craftBtn.BorderSizePixel=0craftBtn.Font=Enum.Font.GothamBold craftBtn.TextSize=14craftBtn.Parent=content
+local craftc=Instance.new("UICorner")craftc.CornerRadius=UDim.new(0,10)craftc.Parent=craftBtn
+y=y+110
+local isFusing=false
+local isCrafting=false
+local noFuse=true
+noFuseBtn.MouseButton1Click:Connect(function()
+noFuse=not noFuse
+if noFuse then
+noFuseBtn.Text="🔒 НЕ ФЮЗИТЬ ФАВОРИТЫ: ВКЛ"
+noFuseBtn.BackgroundColor3=Color3.fromRGB(50,100,50)
+else
+noFuseBtn.Text="🔒 НЕ ФЮЗИТЬ ФАВОРИТЫ: ВЫКЛ"
+noFuseBtn.BackgroundColor3=Color3.fromRGB(80,50,50)
+end
+end)
+fuseBtn.MouseButton1Click:Connect(function()
+isFusing=not isFusing
+if isFusing then
+fuseBtn.Text="🔄 АВТО ФЮЗ: ВКЛ"
+fuseBtn.BackgroundColor3=Color3.fromRGB(50,100,50)
+task.spawn(function()
+while isFusing do
+local cnts={}
+for _,it in pairs(p._Inventory:GetChildren())do
+local isFav=false
+if noFuse then pcall(function()isFav=it:GetAttribute("Favorite")end)end
+if not isFav then cnts[it.Name]=(cnts[it.Name]or 0)+1 end
+end
+for name,count in pairs(cnts)do
+if count>=5 then
+local items={}
+for _,it in pairs(p._Inventory:GetChildren())do
+if it.Name==name and #items<5 then
+local isFav=false
+if noFuse then pcall(function()isFav=it:GetAttribute("Favorite")end)end
+if not isFav then table.insert(items,it)end
+end
+end
+if #items>=5 then
+pcall(function()ev.Fuse:InvokeServer("Fuse",items,false)end)
+showNotif("🔄 Фьюз",name.." x5 → 1",false)
+end
+break
+end
+end
+wait(1.5)
+end
+end)
+else
+fuseBtn.Text="🔄 АВТО ФЮЗ: ВЫКЛ"
+fuseBtn.BackgroundColor3=Color3.fromRGB(80,50,50)
+end
+end)
+craftBtn.MouseButton1Click:Connect(function()
+isCrafting=not isCrafting
+if isCrafting then
+craftBtn.Text="📅 АВТО КРАФТ КАЛЕНДАРЕЙ: ВКЛ"
+craftBtn.BackgroundColor3=Color3.fromRGB(50,100,50)
+task.spawn(function()
+while isCrafting do
+local cals={}
+for _,it in pairs(p._Inventory:GetChildren())do
+if it.Name=="Desk Calendar"then table.insert(cals,it)end
+end
+if #cals>=4 then
+pcall(function()ev.Craft:InvokeServer("Craft",{cals[1],cals[2],cals[3],cals[4]})end)
+showNotif("📅 Крафт","4 календаря → 1",false)
+end
+wait(2)
+end
+end)
+else
+craftBtn.Text="📅 АВТО КРАФТ КАЛЕНДАРЕЙ: ВЫКЛ"
+craftBtn.BackgroundColor3=Color3.fromRGB(80,50,50)
+end
+end)
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Battles"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="⚔️ ВЫБЕРИ КЕЙСЫ ДЛЯ БАТТЛА"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local battleList={"Beggar","Plodder","Office Clerk","Manager","Director","Oligarch","Gold","Dark","Palm","Burj","Cats","Glitch","Dream","Luxury","Monarch"}
+local battleCounts={}
+for _,name in pairs(battleList)do
+if caseImages[name]then
+local f=Instance.new("Frame")f.Size=UDim2.new(1,-10,0,65)f.Position=UDim2.new(0,5,0,y)f.BackgroundColor3=themes[curTheme].btn f.BorderSizePixel=0f.Parent=content
+local fc=Instance.new("UICorner")fc.CornerRadius=UDim.new(0,10)fc.Parent=f
+local img=Instance.new("ImageLabel")img.Size=UDim2.new(0,55,0,55)img.Position=UDim2.new(0,5,0,5)img.BackgroundColor3=Color3.fromRGB(50,55,70)img.Image=caseImages[name]or""img.ScaleType=Enum.ScaleType.Fit img.Parent=f
+local ic=Instance.new("UICorner")ic.CornerRadius=UDim.new(0,8)ic.Parent=img
+local nl=Instance.new("TextLabel")nl.Size=UDim2.new(0,120,0,20)nl.Position=UDim2.new(0,70,0,5)nl.Text=name nl.TextColor3=themes[curTheme].text nl.BackgroundTransparency=1nl.Font=Enum.Font.GothamBold nl.TextSize=12nl.TextXAlignment=Enum.TextXAlignment.Left nl.Parent=f
+local pl=Instance.new("TextLabel")pl.Size=UDim2.new(0,120,0,20)pl.Position=UDim2.new(0,70,0,28)pl.Text="⭐ "..(casePrices[name]or 0)pl.TextColor3=Color3.fromRGB(255,200,100)pl.BackgroundTransparency=1pl.Font=Enum.Font.Gotham pl.TextSize=11pl.TextXAlignment=Enum.TextXAlignment.Left pl.Parent=f
+local minus=Instance.new("TextButton")minus.Size=UDim2.new(0,35,0,35)minus.Position=UDim2.new(1,-105,0,15)minus.Text="-"minus.TextColor3=themes[curTheme].text minus.BackgroundColor3=Color3.fromRGB(80,50,50)minus.BorderSizePixel=0minus.Font=Enum.Font.GothamBold minus.TextSize=20minus.Parent=f
+local minc2=Instance.new("UICorner")minc2.CornerRadius=UDim.new(0,8)minc2.Parent=minus
+local cnt=Instance.new("TextLabel")cnt.Size=UDim2.new(0,40,0,35)cnt.Position=UDim2.new(1,-65,0,15)cnt.Text=tostring(battleCounts[name]or 0)cnt.TextColor3=themes[curTheme].text cnt.BackgroundTransparency=1cnt.Font=Enum.Font.GothamBold cnt.TextSize=16cnt.Parent=f
+local plus=Instance.new("TextButton")plus.Size=UDim2.new(0,35,0,35)plus.Position=UDim2.new(1,-35,0,15)plus.Text="+"plus.TextColor3=themes[curTheme].text plus.BackgroundColor3=Color3.fromRGB(50,80,50)plus.BorderSizePixel=0plus.Font=Enum.Font.GothamBold plus.TextSize=20plus.Parent=f
+local plc=Instance.new("UICorner")plc.CornerRadius=UDim.new(0,8)plc.Parent=plus
+battleCounts[name]=battleCounts[name]or 0
+minus.MouseButton1Click:Connect(function()if battleCounts[name]>0 then battleCounts[name]=battleCounts[name]-1 cnt.Text=tostring(battleCounts[name])end end)
+plus.MouseButton1Click:Connect(function()battleCounts[name]=battleCounts[name]+1 cnt.Text=tostring(battleCounts[name])end)
+y=y+73
+end
+end
+local botFrame=Instance.new("Frame")botFrame.Size=UDim2.new(1,-10,0,45)botFrame.Position=UDim2.new(0,5,0,y)botFrame.BackgroundColor3=themes[curTheme].btn botFrame.BorderSizePixel=0botFrame.Parent=content
+local botCorner=Instance.new("UICorner")botCorner.CornerRadius=UDim.new(0,10)botCorner.Parent=botFrame
+local botLabel=Instance.new("TextLabel")botLabel.Size=UDim2.new(0,150,0,35)botLabel.Position=UDim2.new(0,10,0,5)botLabel.Text="🤖 Играть с ботом"botLabel.TextColor3=themes[curTheme].text botLabel.BackgroundTransparency=1botLabel.Font=Enum.Font.Gotham botLabel.TextSize=13botLabel.TextXAlignment=Enum.TextXAlignment.Left botLabel.Parent=botFrame
+local botToggle=Instance.new("TextButton")botToggle.Size=UDim2.new(0,70,0,35)botToggle.Position=UDim2.new(1,-80,0,5)botToggle.Text="ВКЛ"botToggle.TextColor3=themes[curTheme].text botToggle.BackgroundColor3=Color3.fromRGB(50,100,50)botToggle.BorderSizePixel=0botToggle.Font=Enum.Font.GothamBold botToggle.TextSize=14botToggle.Parent=botFrame
+local botCorner2=Instance.new("UICorner")botCorner2.CornerRadius=UDim.new(0,8)botCorner2.Parent=botToggle
+local useBot=true
+botToggle.MouseButton1Click:Connect(function()
+useBot=not useBot
+botToggle.Text=useBot and"ВКЛ"or"ВЫКЛ"
+botToggle.BackgroundColor3=useBot and Color3.fromRGB(50,100,50)or Color3.fromRGB(80,50,50)
+end)
+y=y+55
+local battleStart=Instance.new("TextButton")battleStart.Size=UDim2.new(1,-10,0,50)battleStart.Position=UDim2.new(0,5,0,y)battleStart.Text="▶ НАЧАТЬ БАТТЛЫ"battleStart.TextColor3=themes[curTheme].text battleStart.BackgroundColor3=Color3.fromRGB(50,100,50)battleStart.BorderSizePixel=0battleStart.Font=Enum.Font.GothamBold battleStart.TextSize=16battleStart.Parent=content
+local battleCorner=Instance.new("UICorner")battleCorner.CornerRadius=UDim.new(0,10)battleCorner.Parent=battleStart
+local battleRunning=false
+battleStart.MouseButton1Click:Connect(function()
+battleRunning=not battleRunning
+if battleRunning then
+battleStart.Text="⏹ ОСТАНОВИТЬ"
+battleStart.BackgroundColor3=Color3.fromRGB(100,50,50)
+task.spawn(function()
+while battleRunning do
+local cases={}
+for name,count in pairs(battleCounts)do
+for i=1,count do table.insert(cases,name)end
+end
+if #cases>0 then
+local success=pcall(function()return ev.Battles:InvokeServer("Create",cases,{})end)
+if success then
+if useBot then
+wait(0.5)
+pcall(function()ev.Battles:InvokeServer("CallABot")end)
+end
+showNotif("⚔️ Битва создана","Кейсов: "..#cases,false)
+end
+end
+wait(5)
+end
+end)
+else
+battleStart.Text="▶ НАЧАТЬ БАТТЛЫ"
+battleStart.BackgroundColor3=Color3.fromRGB(50,100,50)
+end
+end)
+y=y+60
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Dice"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="🎲 DICE PVP ФАРМ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local amountFrame=Instance.new("Frame")amountFrame.Size=UDim2.new(1,-10,0,55)amountFrame.Position=UDim2.new(0,5,0,y)amountFrame.BackgroundColor3=themes[curTheme].btn amountFrame.BorderSizePixel=0amountFrame.Parent=content
+local amountCorner=Instance.new("UICorner")amountCorner.CornerRadius=UDim.new(0,10)amountCorner.Parent=amountFrame
+local amountLabel=Instance.new("TextLabel")amountLabel.Size=UDim2.new(0,100,1,0)amountLabel.Position=UDim2.new(0,12,0,0)amountLabel.Text="Ставка (⭐)"amountLabel.TextColor3=themes[curTheme].text amountLabel.BackgroundTransparency=1amountLabel.Font=Enum.Font.Gotham amountLabel.TextSize=13amountLabel.TextXAlignment=Enum.TextXAlignment.Left amountLabel.Parent=amountFrame
+local amountBox=Instance.new("TextBox")amountBox.Size=UDim2.new(0,150,0,40)amountBox.Position=UDim2.new(1,-160,0,7)amountBox.PlaceholderText="1000000"amountBox.Text="1000000"amountBox.TextColor3=themes[curTheme].text amountBox.BackgroundColor3=Color3.fromRGB(50,50,65)amountBox.BorderSizePixel=0amountBox.Font=Enum.Font.Gotham amountBox.TextSize=13amountBox.Parent=amountFrame
+local amountBoxCorner=Instance.new("UICorner")amountBoxCorner.CornerRadius=UDim.new(0,8)amountBoxCorner.Parent=amountBox
+y=y+65
+local diceBotFrame=Instance.new("Frame")diceBotFrame.Size=UDim2.new(1,-10,0,45)diceBotFrame.Position=UDim2.new(0,5,0,y)diceBotFrame.BackgroundColor3=themes[curTheme].btn diceBotFrame.BorderSizePixel=0diceBotFrame.Parent=content
+local diceBotCorner=Instance.new("UICorner")diceBotCorner.CornerRadius=UDim.new(0,10)diceBotCorner.Parent=diceBotFrame
+local diceBotLabel=Instance.new("TextLabel")diceBotLabel.Size=UDim2.new(0,180,0,35)diceBotLabel.Position=UDim2.new(0,10,0,5)diceBotLabel.Text="🤖 Авто-призыв бота"diceBotLabel.TextColor3=themes[curTheme].text diceBotLabel.BackgroundTransparency=1diceBotLabel.Font=Enum.Font.Gotham diceBotLabel.TextSize=13diceBotLabel.TextXAlignment=Enum.TextXAlignment.Left diceBotLabel.Parent=diceBotFrame
+local diceBotToggle=Instance.new("TextButton")diceBotToggle.Size=UDim2.new(0,70,0,35)diceBotToggle.Position=UDim2.new(1,-80,0,5)diceBotToggle.Text="ВКЛ"diceBotToggle.TextColor3=themes[curTheme].text diceBotToggle.BackgroundColor3=Color3.fromRGB(50,100,50)diceBotToggle.BorderSizePixel=0diceBotToggle.Font=Enum.Font.GothamBold diceBotToggle.TextSize=14diceBotToggle.Parent=diceBotFrame
+local diceBotCorner2=Instance.new("UICorner")diceBotCorner2.CornerRadius=UDim.new(0,8)diceBotCorner2.Parent=diceBotToggle
+local useDiceBot=true
+diceBotToggle.MouseButton1Click:Connect(function()
+useDiceBot=not useDiceBot
+diceBotToggle.Text=useDiceBot and"ВКЛ"or"ВЫКЛ"
+diceBotToggle.BackgroundColor3=useDiceBot and Color3.fromRGB(50,100,50)or Color3.fromRGB(80,50,50)
+end)
+y=y+55
+local diceStart=Instance.new("TextButton")diceStart.Size=UDim2.new(1,-10,0,50)diceStart.Position=UDim2.new(0,5,0,y)diceStart.Text="🎲 НАЧАТЬ ФАРМ"diceStart.TextColor3=themes[curTheme].text diceStart.BackgroundColor3=Color3.fromRGB(50,100,50)diceStart.BorderSizePixel=0diceStart.Font=Enum.Font.GothamBold diceStart.TextSize=16diceStart.Parent=content
+local diceCorner=Instance.new("UICorner")diceCorner.CornerRadius=UDim.new(0,10)diceCorner.Parent=diceStart
+local diceRunning=false
+diceStart.MouseButton1Click:Connect(function()
+diceRunning=not diceRunning
+if diceRunning then
+diceStart.Text="⏹ ОСТАНОВИТЬ"
+diceStart.BackgroundColor3=Color3.fromRGB(100,50,50)
+task.spawn(function()
+while diceRunning do
+local amount=tonumber(amountBox.Text)or 1000000
+local gameId=pcall(function()return ev.DicePvp:InvokeServer("Create",{amount=amount,cursed=false})end)
+if gameId then
+if useDiceBot then
+wait(0.5)
+pcall(function()ev.DicePvp:InvokeServer("CallBot",gameId)end)
+end
+showNotif("🎲 Игра создана","Ставка: "..amount.." ⭐",false)
+end
+wait(4)
+end
+end)
+else
+diceStart.Text="🎲 НАЧАТЬ ФАРМ"
+diceStart.BackgroundColor3=Color3.fromRGB(50,100,50)
+end
+end)
+y=y+60
+content.CanvasSize=UDim2.new(0,0,0,y+10)
+
+elseif curTab=="Favorite"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="⭐ УПРАВЛЕНИЕ ФАВОРИТАМИ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local addNftBtn=Instance.new("TextButton")addNftBtn.Size=UDim2.new(0.48,-5,0,45)addNftBtn.Position=UDim2.new(0,5,0,y)addNftBtn.Text="➕ ДОБАВИТЬ NFT"addNftBtn.TextColor3=themes[curTheme].text addNftBtn.BackgroundColor3=themes[curTheme].accent addNftBtn.BorderSizePixel=0addNftBtn.Font=Enum.Font.GothamBold addNftBtn.TextSize=13addNftBtn.Parent=content
+local addc=Instance.new("UICorner")addc.CornerRadius=UDim.new(0,10)addc.Parent=addNftBtn
+local addTonBtn=Instance.new("TextButton")addTonBtn.Size=UDim2.new(0.48,-5,0,45)addTonBtn.Position=UDim2.new(0.5,5,0,y)addTonBtn.Text="💠 ДОБАВИТЬ В TON"addTonBtn.TextColor3=themes[curTheme].text addTonBtn.BackgroundColor3=themes[curTheme].accent addTonBtn.BorderSizePixel=0addTonBtn.Font=Enum.Font.GothamBold addTonBtn.TextSize=13addTonBtn.Parent=content
+local tonc=Instance.new("UICorner")tonc.CornerRadius=UDim.new(0,10)tonc.Parent=addTonBtn
+y=y+55
+local listScroll=Instance.new("ScrollingFrame")listScroll.Size=UDim2.new(1,-10,0,350)listScroll.Position=UDim2.new(0,5,0,y)listScroll.BackgroundColor3=themes[curTheme].btn listScroll.BorderSizePixel=0listScroll.CanvasSize=UDim2.new(0,0,0,0)listScroll.ScrollBarThickness=4listScroll.Parent=content
+local listCorner=Instance.new("UICorner")listCorner.CornerRadius=UDim.new(0,10)listCorner.Parent=listScroll
+local function updateFavoriteList()
+for _,v in pairs(listScroll:GetChildren())do v:Destroy()end
+local sy=5
+for _,name in pairs(allNFTs)do
+local fr=Instance.new("Frame")fr.Size=UDim2.new(1,-10,0,60)fr.Position=UDim2.new(0,5,0,sy)fr.BackgroundColor3=themes[curTheme].bg fr.BorderSizePixel=0fr.Parent=listScroll
+local frc=Instance.new("UICorner")frc.CornerRadius=UDim.new(0,8)frc.Parent=fr
+local nim=Instance.new("ImageLabel")nim.Size=UDim2.new(0,50,0,50)nim.Position=UDim2.new(0,5,0,5)nim.BackgroundColor3=Color3.fromRGB(50,55,70)nim.Image=nftImages[name]or""nim.ScaleType=Enum.ScaleType.Fit nim.Parent=fr
+local nic=Instance.new("UICorner")nic.CornerRadius=UDim.new(0,6)nic.Parent=nim
+local nml=Instance.new("TextLabel")nml.Size=UDim2.new(0,200,0,22)nml.Position=UDim2.new(0,65,0,5)nml.Text=name nml.TextColor3=themes[curTheme].text nml.BackgroundTransparency=1nml.Font=Enum.Font.Gotham nml.TextSize=10nml.TextXAlignment=Enum.TextXAlignment.Left nml.Parent=fr
+local prl=Instance.new("TextLabel")prl.Size=UDim2.new(0,200,0,22)prl.Position=UDim2.new(0,65,0,28)prl.Text="⭐ "..(nftPrices[name]or 0)prl.TextColor3=Color3.fromRGB(255,200,100)prl.BackgroundTransparency=1prl.Font=Enum.Font.Gotham prl.TextSize=10prl.TextXAlignment=Enum.TextXAlignment.Left prl.Parent=fr
+local favBtn=Instance.new("TextButton")favBtn.Size=UDim2.new(0,35,0,35)favBtn.Position=UDim2.new(1,-42,0,12)
+pcall(function()
+local isFav=false
+for _,it in pairs(p._Inventory:GetChildren())do
+if it.Name==name and it:GetAttribute("Favorite")then isFav=true break end
+end
+favBtn.Text=isFav and"⭐"or"☆"
+end)
+favBtn.TextColor3=themes[curTheme].text favBtn.BackgroundColor3=themes[curTheme].btn favBtn.BorderSizePixel=0favBtn.Font=Enum.Font.GothamBold favBtn.TextSize=18favBtn.Parent=fr
+local favc2=Instance.new("UICorner")favc2.CornerRadius=UDim.new(0,6)favc2.Parent=favBtn
+favBtn.MouseButton1Click:Connect(function()
+local isFav=favBtn.Text=="⭐"
+pcall(function()ev.Favorite:InvokeServer(name,not isFav)end)
+favBtn.Text=not isFav and"⭐"or"☆"
+showNotif("⭐ Избранное",name..(not isFav and" добавлен"or" удален"),false)
+end)
+sy=sy+68
+end
+listScroll.CanvasSize=UDim2.new(0,0,0,sy+10)
+end
+updateFavoriteList()
+local addWindow=nil
+local tonWindow=nil
+addNftBtn.MouseButton1Click:Connect(function()
+if addWindow then addWindow:Destroy()end
+addWindow=Instance.new("Frame")addWindow.Size=UDim2.new(0,400,0,500)addWindow.Position=UDim2.new(0.5,-200,0.5,-250)addWindow.BackgroundColor3=themes[curTheme].bg addWindow.BorderSizePixel=0addWindow.Parent=gui
+local wc=Instance.new("UICorner")wc.CornerRadius=UDim.new(0,12)wc.Parent=addWindow
+local wt=Instance.new("TextLabel")wt.Size=UDim2.new(1,0,0,40)wt.Text="➕ ВЫБЕРИ NFT ДЛЯ ДОБАВЛЕНИЯ"wt.TextColor3=themes[curTheme].accent wt.BackgroundColor3=themes[curTheme].btn wt.Font=Enum.Font.GothamBold wt.TextSize=13wt.Parent=addWindow
+local wtc=Instance.new("UICorner")wtc.CornerRadius=UDim.new(0,12)wtc.Parent=wt
+local cls=Instance.new("TextButton")cls.Size=UDim2.new(0,30,0,30)cls.Position=UDim2.new(1,-35,0,5)cls.Text="✕"cls.TextColor3=themes[curTheme].text cls.BackgroundColor3=Color3.fromRGB(80,50,50)cls.BorderSizePixel=0cls.Font=Enum.Font.GothamBold cls.TextSize=14cls.Parent=wt
+local clc=Instance.new("UICorner")clc.CornerRadius=UDim.new(0,6)clc.Parent=cls
+cls.MouseButton1Click:Connect(function()addWindow:Destroy()addWindow=nil end)
+local sc=Instance.new("ScrollingFrame")sc.Size=UDim2.new(1,-10,1,-85)sc.Position=UDim2.new(0,5,0,45)sc.BackgroundTransparency=1sc.CanvasSize=UDim2.new(0,0,0,0)sc.ScrollBarThickness=4sc.Parent=addWindow
+local conf=Instance.new("TextButton")conf.Size=UDim2.new(0,120,0,35)conf.Position=UDim2.new(0.5,-60,1,-42)conf.Text="✅ ДОБАВИТЬ"conf.TextColor3=themes[curTheme].text conf.BackgroundColor3=Color3.fromRGB(50,100,50)conf.BorderSizePixel=0conf.Font=Enum.Font.GothamBold conf.TextSize=12conf.Parent=addWindow
+local confc=Instance.new("UICorner")confc.CornerRadius=UDim.new(0,8)confc.Parent=conf
+local addCounts={}
+local sy2=5
+for _,name in pairs(allNFTs)do
+local fr=Instance.new("Frame")fr.Size=UDim2.new(1,-10,0,55)fr.Position=UDim2.new(0,5,0,sy2)fr.BackgroundColor3=themes[curTheme].btn fr.BorderSizePixel=0fr.Parent=sc
+local frc=Instance.new("UICorner")frc.CornerRadius=UDim.new(0,8)frc.Parent=fr
+local nim=Instance.new("ImageLabel")nim.Size=UDim2.new(0,45,0,45)nim.Position=UDim2.new(0,5,0,5)nim.BackgroundColor3=Color3.fromRGB(50,55,70)nim.Image=nftImages[name]or""nim.ScaleType=Enum.ScaleType.Fit nim.Parent=fr
+local nic=Instance.new("UICorner")nic.CornerRadius=UDim.new(0,6)nic.Parent=nim
+local nml=Instance.new("TextLabel")nml.Size=UDim2.new(0,160,0,22)nml.Position=UDim2.new(0,60,0,5)nml.Text=name nml.TextColor3=themes[curTheme].text nml.BackgroundTransparency=1nml.Font=Enum.Font.Gotham nml.TextSize=9nml.TextXAlignment=Enum.TextXAlignment.Left nml.Parent=fr
+local prl=Instance.new("TextLabel")prl.Size=UDim2.new(0,160,0,22)prl.Position=UDim2.new(0,60,0,28)prl.Text="⭐ "..(nftPrices[name]or 0)prl.TextColor3=Color3.fromRGB(255,200,100)prl.BackgroundTransparency=1prl.Font=Enum.Font.Gotham prl.TextSize=9prl.TextXAlignment=Enum.TextXAlignment.Left prl.Parent=fr
+local minus=Instance.new("TextButton")minus.Size=UDim2.new(0,25,0,25)minus.Position=UDim2.new(1,-85,0,15)minus.Text="-"minus.TextColor3=themes[curTheme].text minus.BackgroundColor3=Color3.fromRGB(80,50,50)minus.BorderSizePixel=0minus.Font=Enum.Font.GothamBold minus.TextSize=16minus.Parent=fr
+local minc3=Instance.new("UICorner")minc3.CornerRadius=UDim.new(0,6)minc3.Parent=minus
+local cnt=Instance.new("TextLabel")cnt.Size=UDim2.new(0,30,0,25)cnt.Position=UDim2.new(1,-55,0,15)cnt.Text=tostring(addCounts[name]or 0)cnt.TextColor3=themes[curTheme].text cnt.BackgroundTransparency=1cnt.Font=Enum.Font.GothamBold cnt.TextSize=14cnt.Parent=fr
+local plus=Instance.new("TextButton")plus.Size=UDim2.new(0,25,0,25)plus.Position=UDim2.new(1,-28,0,15)plus.Text="+"plus.TextColor3=themes[curTheme].text plus.BackgroundColor3=Color3.fromRGB(50,80,50)plus.BorderSizePixel=0plus.Font=Enum.Font.GothamBold plus.TextSize=16plus.Parent=fr
+local plc2=Instance.new("UICorner")plc2.CornerRadius=UDim.new(0,6)plc2.Parent=plus
+addCounts[name]=addCounts[name]or 0
+minus.MouseButton1Click:Connect(function()if addCounts[name]>0 then addCounts[name]=addCounts[name]-1 cnt.Text=tostring(addCounts[name])end end)
+plus.MouseButton1Click:Connect(function()addCounts[name]=addCounts[name]+1 cnt.Text=tostring(addCounts[name])end)
+sy2=sy2+63
+end
+sc.CanvasSize=UDim2.new(0,0,0,sy2+10)
+conf.MouseButton1Click:Connect(function()
+for name,count in pairs(addCounts)do
+if count>0 then
+for i=1,count do
+local item=Instance.new("StringValue")
+item.Name=name
+item.Parent=p._Inventory
+pcall(function()ev.Favorite:InvokeServer(name,true)end)
+end
+showNotif("➕ Добавлено",name.." x"..count,false)
+end
+end
+addWindow:Destroy()
+addWindow=nil
+updateFavoriteList()
+end)
+end)
+addTonBtn.MouseButton1Click:Connect(function()
+if tonWindow then tonWindow:Destroy()end
+tonWindow=Instance.new("Frame")tonWindow.Size=UDim2.new(0,400,0,500)tonWindow.Position=UDim2.new(0.5,-200,0.5,-250)tonWindow.BackgroundColor3=themes[curTheme].bg tonWindow.BorderSizePixel=0tonWindow.Parent=gui
+local wc=Instance.new("UICorner")wc.CornerRadius=UDim.new(0,12)wc.Parent=tonWindow
+local wt=Instance.new("TextLabel")wt.Size=UDim2.new(1,0,0,40)wt.Text="💠 ВЫБЕРИ NFT ДЛЯ TON"wt.TextColor3=themes[curTheme].accent wt.BackgroundColor3=themes[curTheme].btn wt.Font=Enum.Font.GothamBold wt.TextSize=13wt.Parent=tonWindow
+local wtc=Instance.new("UICorner")wtc.CornerRadius=UDim.new(0,12)wtc.Parent=wt
+local cls=Instance.new("TextButton")cls.Size=UDim2.new(0,30,0,30)cls.Position=UDim2.new(1,-35,0,5)cls.Text="✕"cls.TextColor3=themes[curTheme].text cls.BackgroundColor3=Color3.fromRGB(80,50,50)cls.BorderSizePixel=0cls.Font=Enum.Font.GothamBold cls.TextSize=14cls.Parent=wt
+local clc=Instance.new("UICorner")clc.CornerRadius=UDim.new(0,6)clc.Parent=cls
+cls.MouseButton1Click:Connect(function()tonWindow:Destroy()tonWindow=nil end)
+local sc=Instance.new("ScrollingFrame")sc.Size=UDim2.new(1,-10,1,-85)sc.Position=UDim2.new(0,5,0,45)sc.BackgroundTransparency=1sc.CanvasSize=UDim2.new(0,0,0,0)sc.ScrollBarThickness=4sc.Parent=tonWindow
+local conf=Instance.new("TextButton")conf.Size=UDim2.new(0,120,0,35)conf.Position=UDim2.new(0.5,-60,1,-42)conf.Text="✅ ДАЛЕЕ"conf.TextColor3=themes[curTheme].text conf.BackgroundColor3=Color3.fromRGB(50,100,50)conf.BorderSizePixel=0conf.Font=Enum.Font.GothamBold conf.TextSize=12conf.Parent=tonWindow
+local confc=Instance.new("UICorner")confc.CornerRadius=UDim.new(0,8)confc.Parent=conf
+local sel={}
+local sy2=5
+for _,name in pairs(allNFTs)do
+local fr=Instance.new("Frame")fr.Size=UDim2.new(1,-10,0,55)fr.Position=UDim2.new(0,5,0,sy2)fr.BackgroundColor3=themes[curTheme].btn fr.BorderSizePixel=0fr.Parent=sc
+local frc=Instance.new("UICorner")frc.CornerRadius=UDim.new(0,8)frc.Parent=fr
+local nim=Instance.new("ImageLabel")nim.Size=UDim2.new(0,45,0,45)nim.Position=UDim2.new(0,5,0,5)nim.BackgroundColor3=Color3.fromRGB(50,55,70)nim.Image=nftImages[name]or""nim.ScaleType=Enum.ScaleType.Fit nim.Parent=fr
+local nic=Instance.new("UICorner")nic.CornerRadius=UDim.new(0,6)nic.Parent=nim
+local nml=Instance.new("TextLabel")nml.Size=UDim2.new(0,180,0,22)nml.Position=UDim2.new(0,60,0,5)nml.Text=name nml.TextColor3=themes[curTheme].text nml.BackgroundTransparency=1nml.Font=Enum.Font.Gotham nml.TextSize=10nml.TextXAlignment=Enum.TextXAlignment.Left nml.Parent=fr
+local prl=Instance.new("TextLabel")prl.Size=UDim2.new(0,180,0,22)prl.Position=UDim2.new(0,60,0,28)prl.Text="⭐ "..(nftPrices[name]or 0)prl.TextColor3=Color3.fromRGB(255,200,100)prl.BackgroundTransparency=1prl.Font=Enum.Font.Gotham prl.TextSize=10prl.TextXAlignment=Enum.TextXAlignment.Left prl.Parent=fr
+local chk=Instance.new("TextButton")chk.Size=UDim2.new(0,35,0,35)chk.Position=UDim2.new(1,-42,0,10)chk.Text="⬜"chk.TextColor3=themes[curTheme].text chk.BackgroundColor3=Color3.fromRGB(40,45,60)chk.BorderSizePixel=0chk.Font=Enum.Font.GothamBold chk.TextSize=16chk.Parent=fr
+local chkc=Instance.new("UICorner")chkc.CornerRadius=UDim.new(0,6)chkc.Parent=chk
+local isCh=false
+chk.MouseButton1Click:Connect(function()
+isCh=not isCh
+chk.Text=isCh and"✅"or"⬜"
+chk.BackgroundColor3=isCh and Color3.fromRGB(50,100,50)or Color3.fromRGB(40,45,60)
+if isCh then table.insert(sel,name)else for i,v in ipairs(sel)do if v==name then table.remove(sel,i)break end end end
+end)
+sy2=sy2+63
+end
+sc.CanvasSize=UDim2.new(0,0,0,sy2+10)
+conf.MouseButton1Click:Connect(function()
+if #sel==0 then showNotif("⚠️ Ошибка","Выберите хотя бы один NFT",false)return end
+tonWindow:Destroy()
+tonWindow=nil
+local stWin=Instance.new("Frame")stWin.Size=UDim2.new(0,350,0,300)stWin.Position=UDim2.new(0.5,-175,0.5,-150)stWin.BackgroundColor3=themes[curTheme].bg stWin.BorderSizePixel=0stWin.Parent=gui
+local swc=Instance.new("UICorner")swc.CornerRadius=UDim.new(0,12)swc.Parent=stWin
+local swt=Instance.new("TextLabel")swt.Size=UDim2.new(1,0,0,40)swt.Text="🎨 ВЫБЕРИ СТИЛЬ"swt.TextColor3=themes[curTheme].accent swt.BackgroundColor3=themes[curTheme].btn swt.Font=Enum.Font.GothamBold swt.TextSize=14swt.Parent=stWin
+local swtc=Instance.new("UICorner")swtc.CornerRadius=UDim.new(0,12)swtc.Parent=swt
+local cls2=Instance.new("TextButton")cls2.Size=UDim2.new(0,30,0,30)cls2.Position=UDim2.new(1,-35,0,5)cls2.Text="✕"cls2.TextColor3=themes[curTheme].text cls2.BackgroundColor3=Color3.fromRGB(80,50,50)cls2.BorderSizePixel=0cls2.Font=Enum.Font.GothamBold cls2.TextSize=14cls2.Parent=swt
+local clc2=Instance.new("UICorner")clc2.CornerRadius=UDim.new(0,6)clc2.Parent=cls2
+cls2.MouseButton1Click:Connect(function()stWin:Destroy()end)
+local backBox=Instance.new("TextBox")backBox.Size=UDim2.new(0.9,-10,0,40)backBox.Position=UDim2.new(0.05,0,0,50)backBox.PlaceholderText="Узор/Фон (например: Space, Gold, Sakura)"backBox.Text="Standard"backBox.TextColor3=themes[curTheme].text backBox.BackgroundColor3=themes[curTheme].btn backBox.BorderSizePixel=0backBox.Font=Enum.Font.Gotham backBox.TextSize=12backBox.Parent=stWin
+local backCorner=Instance.new("UICorner")backCorner.CornerRadius=UDim.new(0,8)backCorner.Parent=backBox
+local numBox=Instance.new("TextBox")numBox.Size=UDim2.new(0.9,-10,0,40)numBox.Position=UDim2.new(0.05,0,0,100)numBox.PlaceholderText="Номер (1-999999)"numBox.Text=tostring(math.random(1,999999))numBox.TextColor3=themes[curTheme].text numBox.BackgroundColor3=themes[curTheme].btn numBox.BorderSizePixel=0numBox.Font=Enum.Font.Gotham numBox.TextSize=12numBox.Parent=stWin
+local numCorner=Instance.new("UICorner")numCorner.CornerRadius=UDim.new(0,8)numCorner.Parent=numBox
+local confirmStyle=Instance.new("TextButton")confirmStyle.Size=UDim2.new(0.8,-10,0,45)confirmStyle.Position=UDim2.new(0.1,0,1,-55)confirmStyle.Text="✅ СОЗДАТЬ В TON"confirmStyle.TextColor3=themes[curTheme].text confirmStyle.BackgroundColor3=Color3.fromRGB(50,100,50)confirmStyle.BorderSizePixel=0confirmStyle.Font=Enum.Font.GothamBold confirmStyle.TextSize=14confirmStyle.Parent=stWin
+local confStyleCorner=Instance.new("UICorner")confStyleCorner.CornerRadius=UDim.new(0,10)confStyleCorner.Parent=confirmStyle
+confirmStyle.MouseButton1Click:Connect(function()
+for _,name in ipairs(sel)do
+local uniqueName=name.." ("..backBox.Text..")"
+local item=Instance.new("StringValue")
+item.Name=uniqueName
+item.Parent=p._Inventory
+pcall(function()ev.Favorite:InvokeServer(uniqueName,true)end)
+showNotif("💠 TON NFT",uniqueName.." создан!",false)
+end
+stWin:Destroy()
+updateFavoriteList()
+end)
+end)
+end)
+content.CanvasSize=UDim2.new(0,0,0,y+360)
+
+elseif curTab=="Theme"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="🎨 ВЫБЕРИ ТЕМУ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local themeList={"Dark","Blue","Red","Green","Purple"}
+local colors={Color3.fromRGB(15,20,35),Color3.fromRGB(20,30,50),Color3.fromRGB(40,20,20),Color3.fromRGB(20,40,20),Color3.fromRGB(30,20,45)}
+for i,th in pairs(themeList)do
+local btn=Instance.new("TextButton")btn.Size=UDim2.new(0.18,-5,0,40)btn.Position=UDim2.new((i-1)*0.2,5,0,y)btn.Text=th btn.TextColor3=Color3.fromRGB(0,255,255)btn.BackgroundColor3=colors[i]btn.BorderSizePixel=0btn.Font=Enum.Font.GothamBold btn.TextSize=12btn.Parent=content
+local btnc=Instance.new("UICorner")btnc.CornerRadius=UDim.new(0,8)btnc.Parent=btn
+btn.MouseButton1Click:Connect(function()
+curTheme=th
+applyTheme()
+showNotif("🎨 Тема",th,false)
+end)
+end
+content.CanvasSize=UDim2.new(0,0,0,y+50)
+
+elseif curTab=="Info"then
+local ttl=Instance.new("TextLabel")ttl.Size=UDim2.new(1,-10,0,35)ttl.Position=UDim2.new(0,5,0,y)ttl.Text="ℹ️ ИНФОРМАЦИЯ"ttl.TextColor3=themes[curTheme].accent ttl.BackgroundTransparency=1ttl.Font=Enum.Font.GothamBold ttl.TextSize=15ttl.Parent=content
+y=y+40
+local inf=Instance.new("TextLabel")inf.Size=UDim2.new(1,-10,0,120)inf.Position=UDim2.new(0,5,0,y)inf.Text="СОЗДАТЕЛЬ: TROTULOV39\n\nВЕРСИЯ: 8.3 ULTIMATE\n\nДЛЯ: NFT BATTLE\n\nВСЕ ФУНКЦИИ РАБОТАЮТ АВТОМАТИЧЕСКИ"inf.TextColor3=themes[curTheme].text inf.BackgroundTransparency=1inf.Font=Enum.Font.Gotham inf.TextSize=12inf.TextWrapped=true inf.Parent=content
+y=y+130
+local stats=Instance.new("TextLabel")stats.Size=UDim2.new(1,-10,0,80)stats.Position=UDim2.new(0,5,0,y)stats.Text="📊 СТАТИСТИКА\n\nКейсов открыто: "..(p._CasesOpened and p._CasesOpened.Value or 0).."\nАпгрейдов сделано: "..(p._UpgradesMade and p._UpgradesMade.Value or 0)stats.TextColor3=Color3.fromRGB(200,200,200)stats.BackgroundTransparency=1stats.Font=Enum.Font.Gotham stats.TextSize=11stats.TextWrapped=true stats.Parent=content
+content.CanvasSize=UDim2.new(0,0,0,y+90)
+end
+end
+
+applyTheme()
+loadTab()
+print("✅ NFT BATTLE ULTIMATE V8.3 LOADED")
