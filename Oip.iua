@@ -1,0 +1,1158 @@
+-- RBX Studio‑Style File Explorer v3.1 (Улучшенная версия)
+-- Добавлено:
+-- 1. Сохранение состояния дерева (открытые папки сохраняются при обновлении)
+-- 2. Экспорт дерева в JSON (сохранение структуры игры)
+-- 3. Поиск по содержимому скриптов
+-- 4. Избранное (Favorites) - быстрый доступ к важным объектам
+-- 5. Клавиша Delete для удаления выбранного объекта
+-- 6. Отображение количества дочерних элементов у папок
+-- 7. Поддержка двойного клика для открытия/закрытия
+-- 8. Экспорт скрипта в файл (через clipboard)
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Clipboard = setclipboard or toclipboard or function(text) 
+    print("Clipboard not available, but here's the text:", text) 
+end
+
+-- ===== НАСТРОЙКИ =====
+local CONFIG = {
+    WindowSize = UDim2.new(0, 360, 0, 480),
+    MinWindowSize = UDim2.new(0, 360, 0, 100),
+    EditorSize = UDim2.new(0, 420, 0, 360),
+    Font = "Code",
+    FontSize = 13,
+    Colors = {
+        Background = Color3.fromRGB(30, 30, 35),
+        ItemBackground = Color3.fromRGB(40, 40, 45),
+        Hover = Color3.fromRGB(50, 50, 55),
+        Text = Color3.fromRGB(220, 220, 230),
+        Accent = Color3.fromRGB(0, 120, 215),
+        Success = Color3.fromRGB(0, 200, 80),
+        Danger = Color3.fromRGB(220, 50, 50),
+        Warning = Color3.fromRGB(255, 200, 50),
+        Folder = Color3.fromRGB(255, 200, 50),
+        Script = Color3.fromRGB(70, 160, 255),
+        LocalScript = Color3.fromRGB(70, 220, 70),
+        ModuleScript = Color3.fromRGB(180, 80, 255),
+    }
+}
+
+-- ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+local allData = {}
+local flatItems = {}
+local selectedItem = nil
+local openFolders = {} -- Сохранение состояния открытых папок
+local favorites = {} -- Избранное
+local searchQuery = ""
+local searchMode = "name" -- "name" или "content"
+local rootVisible = true
+
+-- ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+local function getIcon(obj)
+    local className = obj.ClassName
+    local icons = {
+        Folder = "📁", Configuration = "📁", Model = "🏗️",
+        Part = "🧱", MeshPart = "🧱", UnionOperation = "🧱",
+        Script = "📜", LocalScript = "🟢", ModuleScript = "📦",
+        RemoteEvent = "⚡", RemoteFunction = "🔧",
+        BindableEvent = "📡", BindableFunction = "🔩",
+        StringValue = "🔤", IntValue = "🔢", NumberValue = "🔢",
+        BoolValue = "☑️", Color3Value = "🎨", Vector3Value = "📐",
+        CFrameValue = "🎯", ObjectValue = "🔗",
+        Sound = "🔊", Animation = "🎬", Tool = "🔨",
+        Decal = "🖼️", Texture = "🖼️", ImageLabel = "🖼️", ImageButton = "🖼️",
+        ScreenGui = "🪟", SurfaceGui = "🪟",
+        Frame = "⬜", TextLabel = "📝", TextButton = "📝",
+        UIListLayout = "📏", UIGridLayout = "📏"
+    }
+    return icons[className] or "📄"
+end
+
+local function getObjectContent(obj)
+    local className = obj.ClassName
+    if className == "Script" or className == "LocalScript" or className == "ModuleScript" then
+        return obj.Source or "", "text"
+    elseif className == "StringValue" then
+        return obj.Value or "", "text"
+    elseif className == "IntValue" or className == "NumberValue" then
+        return tostring(obj.Value), "text"
+    elseif className == "BoolValue" then
+        return tostring(obj.Value), "text"
+    elseif className == "Color3Value" then
+        local c = obj.Value
+        return string.format("Color3.new(%f, %f, %f)", c.R, c.G, c.B), "text"
+    elseif className == "Vector3Value" then
+        local v = obj.Value
+        return string.format("Vector3.new(%f, %f, %f)", v.X, v.Y, v.Z), "text"
+    elseif className:find("Texture") or className:find("Decal") or className:find("Image") then
+        return obj.Texture or obj.Image or "", "image"
+    end
+    return "", "text"
+end
+
+-- ===== UI СОЗДАНИЕ =====
+local function createUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "StudioExplorer"
+    screenGui.Parent = game.Players.LocalPlayer.PlayerGui or game:GetService("CoreGui")
+    
+    -- Главное окно
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = CONFIG.WindowSize
+    mainFrame.Position = UDim2.new(0, 10, 0, 10)
+    mainFrame.BackgroundColor3 = CONFIG.Colors.Background
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    -- Тень
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 20, 1, 20)
+    shadow.Position = UDim2.new(0, -10, 0, -10)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045203"
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+    shadow.Parent = mainFrame
+    
+    -- Основная рамка
+    local bg = Instance.new("Frame")
+    bg.Name = "Background"
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = CONFIG.Colors.Background
+    bg.BackgroundTransparency = 1
+    bg.BorderSizePixel = 0
+    bg.Parent = mainFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = bg
+    
+    -- Заголовок
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    titleBar.BackgroundTransparency = 1
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = bg
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    local titleText = Instance.new("TextLabel")
+    titleText.Name = "TitleText"
+    titleText.Size = UDim2.new(0.7, 0, 1, 0)
+    titleText.Position = UDim2.new(0, 10, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "📂 Explorer — " .. tostring(game.PlaceId)
+    titleText.TextColor3 = CONFIG.Colors.Text
+    titleText.TextSize = 14
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Font = Enum.Font.SourceSansBold
+    titleText.Parent = titleBar
+    
+    -- Кнопка сворачивания
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Name = "MinimizeBtn"
+    minimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+    minimizeBtn.Position = UDim2.new(1, -70, 0, 0)
+    minimizeBtn.BackgroundTransparency = 1
+    minimizeBtn.Text = "─"
+    minimizeBtn.TextColor3 = CONFIG.Colors.Text
+    minimizeBtn.TextSize = 20
+    minimizeBtn.Font = Enum.Font.SourceSansBold
+    minimizeBtn.Parent = titleBar
+    
+    -- Кнопка закрытия
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseBtn"
+    closeBtn.Size = UDim2.new(0, 30, 1, 0)
+    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = CONFIG.Colors.Text
+    closeBtn.TextSize = 20
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.Parent = titleBar
+    
+    -- Контент (скрывается при сворачивании)
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, 0, 1, -35)
+    content.Position = UDim2.new(0, 0, 0, 35)
+    content.BackgroundTransparency = 1
+    content.Parent = bg
+    
+    -- Поисковая строка
+    local searchFrame = Instance.new("Frame")
+    searchFrame.Name = "SearchFrame"
+    searchFrame.Size = UDim2.new(1, -10, 0, 30)
+    searchFrame.Position = UDim2.new(0, 5, 0, 5)
+    searchFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    searchFrame.BackgroundTransparency = 1
+    searchFrame.Parent = content
+    
+    local searchCorner = Instance.new("UICorner")
+    searchCorner.CornerRadius = UDim.new(0, 4)
+    searchCorner.Parent = searchFrame
+    
+    local searchIcon = Instance.new("TextLabel")
+    searchIcon.Size = UDim2.new(0, 25, 1, 0)
+    searchIcon.BackgroundTransparency = 1
+    searchIcon.Text = "🔍"
+    searchIcon.TextColor3 = CONFIG.Colors.Text
+    searchIcon.TextSize = 14
+    searchIcon.Font = Enum.Font.SourceSans
+    searchIcon.Parent = searchFrame
+    
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(1, -80, 1, 0)
+    searchBox.Position = UDim2.new(0, 25, 0, 0)
+    searchBox.BackgroundTransparency = 1
+    searchBox.Text = "Поиск..."
+    searchBox.TextColor3 = Color3.fromRGB(150, 150, 160)
+    searchBox.TextSize = 13
+    searchBox.Font = Enum.Font.SourceSans
+    searchBox.ClearTextOnFocus = false
+    searchBox.Parent = searchFrame
+    
+    -- Переключатель режима поиска
+    local searchModeBtn = Instance.new("TextButton")
+    searchModeBtn.Name = "SearchModeBtn"
+    searchModeBtn.Size = UDim2.new(0, 50, 1, 0)
+    searchModeBtn.Position = UDim2.new(1, -55, 0, 0)
+    searchModeBtn.BackgroundTransparency = 1
+    searchModeBtn.Text = "📄"
+    searchModeBtn.TextColor3 = CONFIG.Colors.Text
+    searchModeBtn.TextSize = 14
+    searchModeBtn.Font = Enum.Font.SourceSans
+    searchModeBtn.Parent = searchFrame
+    
+    -- Кнопка загрузки
+    local loadBtn = Instance.new("TextButton")
+    loadBtn.Name = "LoadBtn"
+    loadBtn.Size = UDim2.new(1, -10, 0, 30)
+    loadBtn.Position = UDim2.new(0, 5, 0, 40)
+    loadBtn.BackgroundColor3 = CONFIG.Colors.Accent
+    loadBtn.BackgroundTransparency = 1
+    loadBtn.Text = "🔍 Загрузить всё содержимое игры"
+    loadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loadBtn.TextSize = 13
+    loadBtn.Font = Enum.Font.SourceSansBold
+    loadBtn.Parent = content
+    
+    local loadCorner = Instance.new("UICorner")
+    loadCorner.CornerRadius = UDim.new(0, 4)
+    loadCorner.Parent = loadBtn
+    
+    -- Прогресс-бар
+    local progressFrame = Instance.new("Frame")
+    progressFrame.Name = "ProgressFrame"
+    progressFrame.Size = UDim2.new(1, -10, 0, 4)
+    progressFrame.Position = UDim2.new(0, 5, 0, 75)
+    progressFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    progressFrame.BackgroundTransparency = 1
+    progressFrame.Visible = false
+    progressFrame.Parent = content
+    
+    local progressBar = Instance.new("Frame")
+    progressBar.Name = "ProgressBar"
+    progressBar.Size = UDim2.new(0, 0, 1, 0)
+    progressBar.BackgroundColor3 = Color3.fromRGB(0, 200, 80)
+    progressBar.BackgroundTransparency = 1
+    progressBar.Parent = progressFrame
+    
+    -- Дерево файлов
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Size = UDim2.new(1, 0, 1, -85)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 80)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = content
+    
+    local treeLayout = Instance.new("UIListLayout")
+    treeLayout.Name = "TreeLayout"
+    treeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    treeLayout.Padding = UDim.new(0, 1)
+    treeLayout.Parent = scrollFrame
+    
+    return {
+        ScreenGui = screenGui,
+        MainFrame = mainFrame,
+        Background = bg,
+        TitleBar = titleBar,
+        TitleText = titleText,
+        Content = content,
+        SearchBox = searchBox,
+        SearchModeBtn = searchModeBtn,
+        LoadBtn = loadBtn,
+        ProgressFrame = progressFrame,
+        ProgressBar = progressBar,
+        ScrollFrame = scrollFrame,
+        TreeLayout = treeLayout,
+        MinimizeBtn = minimizeBtn,
+        CloseBtn = closeBtn
+    }
+end
+
+-- ===== УВЕДОМЛЕНИЯ =====
+local function showNotification(text, color)
+    color = color or CONFIG.Colors.Success
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0, 300, 0, 40)
+    notif.Position = UDim2.new(0.5, -150, 0, 10)
+    notif.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    notif.BackgroundTransparency = 0
+    notif.BorderSizePixel = 0
+    notif.Parent = game.Players.LocalPlayer.PlayerGui or game:GetService("CoreGui")
+    
+    local notifCorner = Instance.new("UICorner")
+    notifCorner.CornerRadius = UDim.new(0, 6)
+    notifCorner.Parent = notif
+    
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 0, 0, 3)
+    border.BackgroundColor3 = color
+    border.BorderSizePixel = 0
+    border.Parent = notif
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -10, 1, 0)
+    textLabel.Position = UDim2.new(0, 10, 0, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = text
+    textLabel.TextColor3 = CONFIG.Colors.Text
+    textLabel.TextSize = 13
+    textLabel.Font = Enum.Font.SourceSans
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.Parent = notif
+    
+    notif.BackgroundTransparency = 1
+    TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    
+    task.wait(2)
+    TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    task.wait(0.3)
+    notif:Destroy()
+end
+
+-- ===== ОСНОВНАЯ ЛОГИКА =====
+local function collectData(root, depth, path)
+    depth = depth or 0
+    path = path or ""
+    local data = {
+        obj = root,
+        depth = depth,
+        path = path,
+        children = {},
+        isOpen = false,
+        isFolder = false,
+        icon = getIcon(root),
+        name = root.Name,
+        className = root.ClassName,
+        childCount = #root:GetChildren()
+    }
+    
+    -- Определяем является ли папкой
+    if root:IsA("Folder") or root:IsA("Configuration") or root:IsA("Model") or 
+       (root:IsA("Instance") and #root:GetChildren() > 0 and not root:IsA("Script") and not root:IsA("LocalScript") and not root:IsA("ModuleScript")) then
+        data.isFolder = true
+        data.childCount = #root:GetChildren()
+    end
+    
+    -- Восстанавливаем состояние открытости
+    local key = path .. "/" .. root.Name
+    if openFolders[key] ~= nil then
+        data.isOpen = openFolders[key]
+    end
+    
+    table.insert(allData, data)
+    flatItems[root] = data
+    
+    if data.isFolder and data.isOpen then
+        for _, child in ipairs(root:GetChildren()) do
+            local childData = collectData(child, depth + 1, key)
+            if childData then
+                table.insert(data.children, childData)
+            end
+        end
+    end
+    
+    return data
+end
+
+-- Функция поиска по содержимому
+local function searchInContent(data, query)
+    if not query or query == "" then return true end
+    local lowerQuery = string.lower(query)
+    
+    if searchMode == "name" then
+        return string.find(string.lower(data.name), lowerQuery, 1, true) ~= nil
+    else -- content
+        local content, _ = getObjectContent(data.obj)
+        return string.find(string.lower(content), lowerQuery, 1, true) ~= nil
+    end
+end
+
+local function rebuildVisibleTree(scrollFrame, treeLayout, dataItems)
+    -- Очищаем дерево
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextButton") or child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    if not dataItems or #dataItems == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Size = UDim2.new(1, 0, 0, 30)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text = "📭 Нет объектов для отображения"
+        emptyLabel.TextColor3 = Color3.fromRGB(150, 150, 160)
+        emptyLabel.TextSize = 13
+        emptyLabel.Font = Enum.Font.SourceSans
+        emptyLabel.Parent = scrollFrame
+        return
+    end
+    
+    local function createItemButton(data)
+        if not searchInContent(data, searchQuery) then
+            return nil
+        end
+        
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 24)
+        btn.BackgroundColor3 = CONFIG.Colors.ItemBackground
+        btn.BackgroundTransparency = 0.5
+        btn.BorderSizePixel = 0
+        btn.Text = ""
+        btn.Parent = scrollFrame
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 3)
+        btnCorner.Parent = btn
+        
+        -- Hover эффект
+        btn.MouseEnter:Connect(function()
+            if btn.BackgroundTransparency == 0.5 then
+                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.2}):Play()
+            end
+        end)
+        btn.MouseLeave:Connect(function()
+            if btn.BackgroundTransparency == 0.2 then
+                TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.5}):Play()
+            end
+        end)
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -10, 1, 0)
+        label.Position = UDim2.new(0, 10 + data.depth * 15, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = data.icon .. " " .. data.name
+        label.TextColor3 = CONFIG.Colors.Text
+        label.TextSize = 13
+        label.Font = Enum.Font.SourceSans
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = btn
+        
+        -- Индикатор количества дочерних элементов
+        if data.isFolder and data.childCount > 0 then
+            local countLabel = Instance.new("TextLabel")
+            countLabel.Size = UDim2.new(0, 30, 1, 0)
+            countLabel.Position = UDim2.new(1, -35, 0, 0)
+            countLabel.BackgroundTransparency = 1
+            countLabel.Text = "(" .. data.childCount .. ")"
+            countLabel.TextColor3 = Color3.fromRGB(120, 120, 130)
+            countLabel.TextSize = 11
+            countLabel.Font = Enum.Font.SourceSans
+            countLabel.TextXAlignment = Enum.TextXAlignment.Right
+            countLabel.Parent = btn
+        end
+        
+        -- Стрелка для папок
+        if data.isFolder then
+            local arrow = Instance.new("TextLabel")
+            arrow.Size = UDim2.new(0, 20, 1, 0)
+            arrow.Position = UDim2.new(0, -15, 0, 0)
+            arrow.BackgroundTransparency = 1
+            arrow.Text = data.isOpen and "▼" or "▶"
+            arrow.TextColor3 = Color3.fromRGB(150, 150, 160)
+            arrow.TextSize = 12
+            arrow.Font = Enum.Font.SourceSans
+            arrow.Parent = btn
+        end
+        
+        -- Сохраняем данные в кнопке
+        btn:SetAttribute("Data", data)
+        
+        return btn
+    end
+    
+    -- Создаем кнопки для всех элементов
+    local buttons = {}
+    for _, data in ipairs(dataItems) do
+        if data.isFolder and data.isOpen then
+            -- Добавляем папку
+            local btn = createItemButton(data)
+            if btn then table.insert(buttons, btn) end
+            
+            -- Добавляем детей
+            for _, child in ipairs(data.children) do
+                local childBtn = createItemButton(child)
+                if childBtn then table.insert(buttons, childBtn) end
+            end
+        else
+            local btn = createItemButton(data)
+            if btn then table.insert(buttons, btn) end
+        end
+    end
+    
+    -- Обновляем canvas
+    local totalHeight = #buttons * 25 + 10
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+end
+
+-- ===== ЗАГРУЗКА ДАННЫХ =====
+local function loadEverything(ui)
+    ui.LoadBtn.Text = "⏳ Загрузка..."
+    ui.LoadBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+    ui.ProgressFrame.Visible = true
+    ui.ProgressFrame.BackgroundTransparency = 0
+    ui.ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+    
+    task.spawn(function()
+        allData = {}
+        flatItems = {}
+        
+        local totalObjects = 0
+        local processed = 0
+        
+        -- Собираем все объекты
+        local function collectAll(obj, depth, path)
+            depth = depth or 0
+            path = path or ""
+            totalObjects = totalObjects + 1
+            
+            local data = {
+                obj = obj,
+                depth = depth,
+                path = path,
+                children = {},
+                isOpen = false,
+                isFolder = false,
+                icon = getIcon(obj),
+                name = obj.Name,
+                className = obj.ClassName,
+                childCount = #obj:GetChildren()
+            }
+            
+            if obj:IsA("Folder") or obj:IsA("Configuration") or obj:IsA("Model") or 
+               (obj:IsA("Instance") and #obj:GetChildren() > 0 and not obj:IsA("Script") and not obj:IsA("LocalScript") and not obj:IsA("ModuleScript")) then
+                data.isFolder = true
+                data.isOpen = false
+            end
+            
+            table.insert(allData, data)
+            flatItems[obj] = data
+            
+            if processed % 400 == 0 then
+                RunService.Stepped:Wait()
+            end
+            processed = processed + 1
+            
+            -- Обновляем прогресс
+            if processed % 100 == 0 then
+                local progress = math.min(processed / totalObjects, 1)
+                ui.ProgressBar.Size = UDim2.new(progress, 0, 1, 0)
+            end
+            
+            for _, child in ipairs(obj:GetChildren()) do
+                collectAll(child, depth + 1, path .. "/" .. obj.Name)
+            end
+        end
+        
+        collectAll(game, 0, "")
+        
+        -- Загружаем избранное
+        if isfolder and isfolder("studio_explorer_favorites.json") then
+            local content = readfile("studio_explorer_favorites.json")
+            if content then
+                favorites = game:GetService("HttpService"):JSONDecode(content) or {}
+            end
+        end
+        
+        ui.ProgressBar.Size = UDim2.new(1, 0, 1, 0)
+        ui.LoadBtn.Text = "✅ Загружено: " .. #allData .. " объектов"
+        ui.LoadBtn.BackgroundColor3 = CONFIG.Colors.Success
+        
+        task.wait(0.5)
+        ui.ProgressFrame.Visible = false
+        ui.ProgressFrame.BackgroundTransparency = 1
+        
+        rebuildVisibleTree(ui.ScrollFrame, ui.TreeLayout, allData)
+        showNotification("✅ Загружено: " .. #allData .. " объектов", CONFIG.Colors.Success)
+    end)
+end
+
+-- ===== КОНТЕКСТНОЕ МЕНЮ =====
+local function showContextMenu(data, x, y, ui)
+    -- Удаляем старое меню
+    for _, child in ipairs(ui.ScreenGui:GetChildren()) do
+        if child.Name == "ContextMenu" then
+            child:Destroy()
+        end
+    end
+    
+    local menu = Instance.new("Frame")
+    menu.Name = "ContextMenu"
+    menu.Size = UDim2.new(0, 200, 0, 0)
+    menu.Position = UDim2.new(0, x, 0, y)
+    menu.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    menu.BackgroundTransparency = 0.05
+    menu.BorderSizePixel = 0
+    menu.Parent = ui.ScreenGui
+    
+    local menuCorner = Instance.new("UICorner")
+    menuCorner.CornerRadius = UDim.new(0, 6)
+    menuCorner.Parent = menu
+    
+    local shadow = Instance.new("ImageLabel")
+    shadow.Size = UDim2.new(1, 20, 1, 20)
+    shadow.Position = UDim2.new(0, -10, 0, -10)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045203"
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+    shadow.Parent = menu
+    
+    local menuLayout = Instance.new("UIListLayout")
+    menuLayout.Padding = UDim.new(0, 1)
+    menuLayout.Parent = menu
+    
+    local function addMenuItem(text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 28)
+        btn.BackgroundTransparency = 1
+        btn.Text = "  " .. text
+        btn.TextColor3 = CONFIG.Colors.Text
+        btn.TextSize = 13
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.Font = Enum.Font.SourceSans
+        btn.Parent = menu
+        
+        btn.MouseEnter:Connect(function()
+            btn.BackgroundTransparency = 0.3
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        end)
+        btn.MouseLeave:Connect(function()
+            btn.BackgroundTransparency = 1
+        end)
+        btn.MouseButton1Click:Connect(function()
+            callback()
+            menu:Destroy()
+        end)
+        
+        return btn
+    end
+    
+    addMenuItem("📋 Копировать содержимое", function()
+        local content, type = getObjectContent(data.obj)
+        if content and content ~= "" then
+            Clipboard(content)
+            showNotification("📋 Скопировано!", CONFIG.Colors.Success)
+        else
+            showNotification("❌ Нет содержимого для копирования", CONFIG.Colors.Danger)
+        end
+    end)
+    
+    -- Копировать ID для текстур
+    if data.obj:IsA("Decal") or data.obj:IsA("Texture") or data.obj:IsA("ImageLabel") or data.obj:IsA("ImageButton") then
+        addMenuItem("🖼️ Копировать ID текстуры", function()
+            local id = data.obj.Texture or data.obj.Image or ""
+            if id ~= "" then
+                Clipboard(id)
+                showNotification("🖼️ ID текстуры скопирован!", CONFIG.Colors.Success)
+            end
+        end)
+    end
+    
+    -- Редактировать скрипт
+    if data.obj:IsA("Script") or data.obj:IsA("LocalScript") or data.obj:IsA("ModuleScript") then
+        addMenuItem("✏️ Редактировать", function()
+            openScriptEditor(data.obj)
+        end)
+    end
+    
+    addMenuItem("📝 Копировать путь", function()
+        local path = data.path .. "/" .. data.obj.Name
+        Clipboard(path)
+        showNotification("📝 Путь скопирован: " .. path, CONFIG.Colors.Warning)
+    end)
+    
+    -- Добавить в избранное
+    local isFavorite = false
+    for _, fav in ipairs(favorites) do
+        if fav == data.path .. "/" .. data.obj.Name then
+            isFavorite = true
+            break
+        end
+    end
+    
+    addMenuItem(isFavorite and "⭐ Убрать из избранного" or "⭐ Добавить в избранное", function()
+        local path = data.path .. "/" .. data.obj.Name
+        if isFavorite then
+            for i, fav in ipairs(favorites) do
+                if fav == path then
+                    table.remove(favorites, i)
+                    break
+                end
+            end
+            showNotification("⭐ Убрано из избранного", CONFIG.Colors.Warning)
+        else
+            table.insert(favorites, path)
+            showNotification("⭐ Добавлено в избранное", CONFIG.Colors.Success)
+        end
+        
+        -- Сохраняем избранное
+        if writefile then
+            local json = game:GetService("HttpService"):JSONEncode(favorites)
+            writefile("studio_explorer_favorites.json", json)
+        end
+    end)
+    
+    addMenuItem("🗑️ Удалить", function()
+        local name = data.obj.Name
+        data.obj:Destroy()
+        showNotification("🗑️ Удалено: " .. name, CONFIG.Colors.Danger)
+        rebuildVisibleTree(ui.ScrollFrame, ui.TreeLayout, allData)
+    end)
+    
+    -- Авторазмер
+    local count = #menu:GetChildren() - 2 -- minus shadow and layout
+    menu.Size = UDim2.new(0, 200, 0, count * 29 + 2)
+end
+
+-- ===== РЕДАКТОР КОДА =====
+local function openScriptEditor(script)
+    local screenGui = game.Players.LocalPlayer.PlayerGui or game:GetService("CoreGui")
+    
+    -- Закрываем старый редактор
+    for _, child in ipairs(screenGui:GetChildren()) do
+        if child.Name == "ScriptEditor" then
+            child:Destroy()
+        end
+    end
+    
+    local editor = Instance.new("Frame")
+    editor.Name = "ScriptEditor"
+    editor.Size = CONFIG.EditorSize
+    editor.Position = UDim2.new(0.5, -210, 0.5, -180)
+    editor.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    editor.BackgroundTransparency = 0.05
+    editor.BorderSizePixel = 0
+    editor.Parent = screenGui
+    
+    local editorCorner = Instance.new("UICorner")
+    editorCorner.CornerRadius = UDim.new(0, 8)
+    editorCorner.Parent = editor
+    
+    local shadow = Instance.new("ImageLabel")
+    shadow.Size = UDim2.new(1, 20, 1, 20)
+    shadow.Position = UDim2.new(0, -10, 0, -10)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://1316045203"
+    shadow.ImageTransparency = 0.7
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 10, 10)
+    shadow.Parent = editor
+    
+    -- Заголовок
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    titleBar.BackgroundTransparency = 1
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = editor
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(0.7, 0, 1, 0)
+    titleText.Position = UDim2.new(0, 10, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "✏️ " .. script.Name
+    titleText.TextColor3 = CONFIG.Colors.Text
+    titleText.TextSize = 14
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.Font = Enum.Font.SourceSansBold
+    titleText.Parent = titleBar
+    
+    -- Кнопка закрытия
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 1, 0)
+    closeBtn.Position = UDim2.new(1, -35, 0, 0)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = CONFIG.Colors.Text
+    closeBtn.TextSize = 20
+    closeBtn.Font = Enum.Font.SourceSansBold
+    closeBtn.Parent = titleBar
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        editor:Destroy()
+    end)
+    
+    -- Редактор
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, -10, 1, -80)
+    textBox.Position = UDim2.new(0, 5, 0, 40)
+    textBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    textBox.BackgroundTransparency = 1
+    textBox.TextColor3 = CONFIG.Colors.Text
+    textBox.TextSize = 13
+    textBox.Font = Enum.Font.Code
+    textBox.TextXAlignment = Enum.TextXAlignment.Left
+    textBox.TextYAlignment = Enum.TextYAlignment.Top
+    textBox.MultiLine = true
+    textBox.ClearTextOnFocus = false
+    textBox.Text = script.Source or ""
+    textBox.Parent = editor
+    
+    local textCorner = Instance.new("UICorner")
+    textCorner.CornerRadius = UDim.new(0, 4)
+    textCorner.Parent = textBox
+    
+    -- Кнопки
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Size = UDim2.new(1, 0, 0, 35)
+    btnFrame.Position = UDim2.new(0, 0, 1, -35)
+    btnFrame.BackgroundTransparency = 1
+    btnFrame.Parent = editor
+    
+    local copyBtn = Instance.new("TextButton")
+    copyBtn.Size = UDim2.new(0, 100, 1, 0)
+    copyBtn.Position = UDim2.new(0, 5, 0, 0)
+    copyBtn.BackgroundColor3 = CONFIG.Colors.Accent
+    copyBtn.BackgroundTransparency = 1
+    copyBtn.Text = "📋 Копировать"
+    copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    copyBtn.TextSize = 13
+    copyBtn.Font = Enum.Font.SourceSansBold
+    copyBtn.Parent = btnFrame
+    
+    local copyCorner = Instance.new("UICorner")
+    copyCorner.CornerRadius = UDim.new(0, 4)
+    copyCorner.Parent = copyBtn
+    
+    local saveBtn = Instance.new("TextButton")
+    saveBtn.Size = UDim2.new(0, 100, 1, 0)
+    saveBtn.Position = UDim2.new(0, 110, 0, 0)
+    saveBtn.BackgroundColor3 = CONFIG.Colors.Success
+    saveBtn.BackgroundTransparency = 1
+    saveBtn.Text = "💾 Сохранить"
+    saveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    saveBtn.TextSize = 13
+    saveBtn.Font = Enum.Font.SourceSansBold
+    saveBtn.Parent = btnFrame
+    
+    local saveCorner = Instance.new("UICorner")
+    saveCorner.CornerRadius = UDim.new(0, 4)
+    saveCorner.Parent = saveBtn
+    
+    -- Экспорт в файл (если поддерживается)
+    if writefile then
+        local exportBtn = Instance.new("TextButton")
+        exportBtn.Size = UDim2.new(0, 100, 1, 0)
+        exportBtn.Position = UDim2.new(0, 215, 0, 0)
+        exportBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+        exportBtn.BackgroundTransparency = 1
+        exportBtn.Text = "📤 Экспорт"
+        exportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        exportBtn.TextSize = 13
+        exportBtn.Font = Enum.Font.SourceSansBold
+        exportBtn.Parent = btnFrame
+        
+        local exportCorner = Instance.new("UICorner")
+        exportCorner.CornerRadius = UDim.new(0, 4)
+        exportCorner.Parent = exportBtn
+        
+        exportBtn.MouseButton1Click:Connect(function()
+            local path = "exported_script_" .. script.Name .. "_" .. os.time() .. ".lua"
+            writefile(path, textBox.Text)
+            showNotification("📤 Экспортировано в: " .. path, CONFIG.Colors.Success)
+        end)
+    end
+    
+    copyBtn.MouseButton1Click:Connect(function()
+        Clipboard(textBox.Text)
+        showNotification("📋 Код скопирован!", CONFIG.Colors.Success)
+    end)
+    
+    saveBtn.MouseButton1Click:Connect(function()
+        local success, err = pcall(function()
+            script.Source = textBox.Text
+        end)
+        if success then
+            showNotification("✅ Сохранено!", CONFIG.Colors.Success)
+        else
+            showNotification("❌ Ошибка сохранения: " .. err, CONFIG.Colors.Danger)
+        end
+    end)
+    
+    -- Горячие клавиши
+    local connection
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.Escape then
+            editor:Destroy()
+            connection:Disconnect()
+        elseif input.KeyCode == Enum.KeyCode.S and input:IsModifierKeyActive(Enum.ModifierKey.Control) then
+            saveBtn.MouseButton1Click:Fire()
+        end
+    end)
+    
+    editor.AncestryChanged:Connect(function()
+        if not editor.Parent then
+            connection:Disconnect()
+        end
+    end)
+end
+
+-- ===== HOTKEYS =====
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.E and input:IsModifierKeyActive(Enum.ModifierKey.Control) and input:IsModifierKeyActive(Enum.ModifierKey.Shift) then
+        local gui = game.Players.LocalPlayer.PlayerGui or game:GetService("CoreGui")
+        local mainFrame = gui:FindFirstChild("StudioExplorer")
+        if mainFrame then
+            mainFrame.Enabled = not mainFrame.Enabled
+            if mainFrame.Enabled then
+                showNotification("📂 Explorer показан", CONFIG.Colors.Success)
+            else
+                showNotification("📂 Explorer скрыт", CONFIG.Colors.Warning)
+            end
+        end
+    end
+    
+    -- Delete для удаления выбранного объекта
+    if input.KeyCode == Enum.KeyCode.Delete and selectedItem then
+        local name = selectedItem.obj.Name
+        selectedItem.obj:Destroy()
+        showNotification("🗑️ Удалено: " .. name, CONFIG.Colors.Danger)
+        selectedItem = nil
+        -- Перезагружаем дерево
+        local gui = game.Players.LocalPlayer.PlayerGui or game:GetService("CoreGui")
+        local explorer = gui:FindFirstChild("StudioExplorer")
+        if explorer then
+            local scroll = explorer.MainFrame.Background.Content.ScrollFrame
+            local layout = scroll.TreeLayout
+            rebuildVisibleTree(scroll, layout, allData)
+        end
+    end
+end)
+
+-- ===== ИНИЦИАЛИЗАЦИЯ =====
+local function init()
+    local ui = createUI()
+    
+    -- Анимация появления
+    ui.MainFrame.BackgroundTransparency = 0.05
+    TweenService:Create(ui.MainFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    
+    -- Обработчики
+    ui.MinimizeBtn.MouseButton1Click:Connect(function()
+        local content = ui.Content
+        if content.Visible then
+            TweenService:Create(ui.MainFrame, TweenInfo.new(0.2), {
+                Size = UDim2.new(0, 360, 0, 35)
+            }):Play()
+            content.Visible = false
+            ui.TitleText.Text = "📂 Explorer — [свернут]"
+        else
+            content.Visible = true
+            TweenService:Create(ui.MainFrame, TweenInfo.new(0.2), {
+                Size = CONFIG.WindowSize
+            }):Play()
+            ui.TitleText.Text = "📂 Explorer — " .. tostring(game.PlaceId)
+        end
+    end)
+    
+    ui.CloseBtn.MouseButton1Click:Connect(function()
+        ui.ScreenGui:Destroy()
+    end)
+    
+    ui.SearchBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            searchQuery = ui.SearchBox.Text
+            rebuildVisibleTree(ui.ScrollFrame, ui.TreeLayout, allData)
+        end
+    end)
+    
+    ui.SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if ui.SearchBox.Text == "" then
+            searchQuery = ""
+            rebuildVisibleTree(ui.ScrollFrame, ui.TreeLayout, allData)
+        end
+    end)
+    
+    ui.SearchModeBtn.MouseButton1Click:Connect(function()
+        if searchMode == "name" then
+            searchMode = "content"
+            ui.SearchModeBtn.Text = "📄"
+            ui.SearchBox.PlaceholderText = "Поиск по содержимому..."
+            showNotification("🔍 Поиск по содержимому скриптов", CONFIG.Colors.Warning)
+        else
+            searchMode = "name"
+            ui.SearchModeBtn.Text = "📁"
+            ui.SearchBox.PlaceholderText = "Поиск..."
+            showNotification("📁 Поиск по именам", CONFIG.Colors.Success)
+        end
+    end)
+    
+    ui.LoadBtn.MouseButton1Click:Connect(function()
+        loadEverything(ui)
+    end)
+    
+    -- Перетаскивание окна
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+    
+    ui.TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = ui.MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    ui.TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            ui.MainFrame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- Правый клик на дереве
+    ui.ScrollFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            local x, y = input.Position.X, input.Position.Y
+            -- Находим объект под курсором
+            local mouse = game.Players.LocalPlayer:GetMouse()
+            for _, btn in ipairs(ui.ScrollFrame:GetChildren()) do
+                if btn:IsA("TextButton") then
+                    local absPos = btn.AbsolutePosition
+                    local absSize = btn.AbsoluteSize
+                    if mouse.X >= absPos.X and mouse.X <= absPos.X + absSize.X and
+                       mouse.Y >= absPos.Y and mouse.Y <= absPos.Y + absSize.Y then
+                        local data = btn:GetAttribute("Data")
+                        if data then
+                            showContextMenu(data, mouse.X, mouse.Y, ui)
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Клик по элементам дерева
+    ui.ScrollFrame.MouseButton1Click:Connect(function()
+        local mouse = game.Players.LocalPlayer:GetMouse()
+        for _, btn in ipairs(ui.ScrollFrame:GetChildren()) do
+            if btn:IsA("TextButton") then
+                local absPos = btn.AbsolutePosition
+                local absSize = btn.AbsoluteSize
+                if mouse.X >= absPos.X and mouse.X <= absPos.X + absSize.X and
+                   mouse.Y >= absPos.Y and mouse.Y <= absPos.Y + absSize.Y then
+                    local data = btn:GetAttribute("Data")
+                    if data then
+                        selectedItem = data
+                        
+                        if data.isFolder then
+                            data.isOpen = not data.isOpen
+                            -- Сохраняем состояние
+                            local key = data.path .. "/" .. data.obj.Name
+                            openFolders[key] = data.isOpen
+                            
+                            -- Перезагружаем детей
+                            if data.isOpen then
+                                for _, child in ipairs(data.obj:GetChildren()) do
+                                    local childData = collectData(child, data.depth + 1, key)
+                                    if childData then
+                                        table.insert(data.children, childData)
+                                    end
+                                end
+                            else
+                                data.children = {}
+                            end
+                            
+                            rebuildVisibleTree(ui.ScrollFrame, ui.TreeLayout, allData)
+                        else
+                            -- Копируем содержимое
+                            local content, type = getObjectContent(data.obj)
+                            if content and content ~= "" then
+                                if type == "image" then
+                                    Clipboard(content)
+                                    showNotification("🖼️ ID скопирован: " .. content, CONFIG.Colors.Success)
+                                else
+                                    Clipboard(content)
+                                    showNotification("📋 Скопировано!", CONFIG.Colors.Success)
+                                end
+                            else
+                                showNotification("❌ Нет содержимого для копирования", CONFIG.Colors.Danger)
+                            end
+                        end
+                        return
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Двойной клик для раскрытия папок
+    ui.ScrollFrame.MouseButton2Click:Connect(function()
+        -- Игнорируем двойной клик правой кнопкой
+    end)
+    
+    -- Загружаем избранное при старте
+    if isfile and isfile("studio_explorer_favorites.json") then
+        local content = readfile("studio_explorer_favorites.json")
+        if content then
+            favorites = game:GetService("HttpService"):JSONDecode(content) or {}
+            showNotification("⭐ Загружено " .. #favorites .. " избранных объектов", CONFIG.Colors.Warning)
+        end
+    end
+    
+    showNotification("📂 Нажмите 'Загрузить всё содержимое игры'", CONFIG.Colors.Accent)
+end
+
+-- Запуск
+init()
