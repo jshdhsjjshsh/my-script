@@ -1,0 +1,491 @@
+local PL=game:GetService("Players")
+local RS=game:GetService("ReplicatedStorage")
+local RUN=game:GetService("RunService")
+local TS=game:GetService("TweenService")
+local UIS=game:GetService("UserInputService")
+local LP=PL.LocalPlayer
+local PGui=LP.PlayerGui
+local Events=RS:WaitForChild("Events")
+
+local Cases={"Daily","Trash","Beggar","Plodder","Office Clerk","Director","Oligarch","Manager","Frozen Heart","Bubble Gum","Cats","Dream","Glitch","Bloody Night","Ninja Turtles","Gold","Dark","Palm","Burj","Luxury","Monarch","Angel","M5 F90","G63","Porsche 911","URUS","Durov","Magnate","Cirque","REDO","Desk Calendars","Heavenfall","Divine","Photon Core","Sunny day","All In","Premium","Starter","Pepe10"}
+local CaseImg={Daily=114447727982920,Trash=106599130323577,Beggar=117750720745305,Plodder=106913820750482,["Office Clerk"]=113128984263308,Director=132224544380006,Oligarch=72724304053316,Manager=99806181652051,["Frozen Heart"]=87214395143906,["Bubble Gum"]=82224068961086,Cats=95375267833149,Gold=70908433442260,Dark=88276638893486,Palm=72236024427706,Burj=93924885649377,Luxury=117750720745301}
+local CasePrice={Daily=0,Trash=0,Beggar=100,Plodder=444,["Office Clerk"]=689,Director=926,Oligarch=1364,Manager=835,["Frozen Heart"]=4500,["Bubble Gum"]=12000,Cats=40000,Dream=8000,Glitch=6000,["Bloody Night"]=15000,["Ninja Turtles"]=20000,Gold=1999,Dark=4999,Palm=13999,Burj=37999,Luxury=119999,Monarch=50000,Angel=75000,["M5 F90"]=25000,G63=30000,["Porsche 911"]=35000,URUS=45000,Durov=100000,Magnate=150000,Cirque=200000,REDO=500000,["Desk Calendars"]=0,Heavenfall=999999,Divine=999999,["Photon Core"]=999999,["Sunny day"]=5000,["All In"]=10000,Premium=50000,Starter=50,Pepe10=2000}
+local SumCases={Tropical={img=92036367409033,p=100},Desert={img=74029859605294,p=250},["Shark Bite"]={img=88953792967652,p=3000},["Blooming Sakura"]={img=94649364884706,p=1000}}
+local NGCases={Festive={img=96220025786883,p=50},Santa={img=76467479616057,p=500},Reindeer={img=127222842721638,p=2000},["XMAS Night"]={img=106413989127449,p=10000}}
+local SumList={"Tropical","Desert","Shark Bite","Blooming Sakura"}
+local NGList={"Festive","Santa","Reindeer","XMAS Night"}
+
+local CFG={sel={},autoCase=false,autoSell=false,favName="",battleCounts={},battleBot=true,battleOn=false,fuseOn=false,fuseFavSkip=true,autoCalOn=false,autoUpgOn=false,upg1="",upg2="",sunSpinOn=false,sunCollOn=false,ngSpinOn=false,cubeMode="default",cubeBet=1000,cubeOn=false}
+local CHAIN={}
+local CUBE_CHAIN={}
+local Theme=Color3.fromRGB(150,30,255)
+local TColors={Color3.fromRGB(150,30,255),Color3.fromRGB(255,0,150),Color3.fromRGB(0,220,255),Color3.fromRGB(255,80,0),Color3.fromRGB(0,255,120),Color3.fromRGB(255,200,0),Color3.fromRGB(0,150,255),Color3.fromRGB(255,50,50),Color3.fromRGB(100,255,255),Color3.fromRGB(200,0,255)}
+
+local function fmt(n)n=math.floor(tonumber(n)or 0)if n>=1e9 then return("%.1fB"):format(n/1e9)elseif n>=1e6 then return("%.1fM"):format(n/1e6)elseif n>=1e3 then return("%.1fK"):format(n/1e3)else return tostring(n)end end
+local function gv(n)local v=LP:FindFirstChild(n)return v and v.Value or 0 end
+local function getInv()return(LP:FindFirstChild("_Inventory")or LP:FindFirstChild("Inventory"))end
+local function isFav(i)return i:GetAttribute("Favorite")end
+local function notify(t,m)pcall(function()game:GetService("StarterGui"):SetCore("SendNotification",{Title=t,Text=m,Duration=3})end)end
+local function tw(o,t,g)TS:Create(o,TweenInfo.new(t or 0.15),g):Play()end
+
+-- UI BUILDER
+local function N(nm,cl,pr,par)local o=Instance.new(cl)o.Name=nm or cl;for k,v in pairs(pr or{})do o[k]=v end;if par then o.Parent=par end;return o end
+local function corner(p,r)N("c","UICorner",{CornerRadius=UDim.new(0,r or 7)},p)end
+local function stroke(p,c,t)local s=N("s","UIStroke",{Color=c or Theme,Thickness=t or 1.5},p)return s end
+local function grad(p,c1,c2,r)N("g","UIGradient",{Color=ColorSequence.new{ColorSequenceKeypoint.new(0,c1),ColorSequenceKeypoint.new(1,c2)},Rotation=r or 90},p)end
+
+local BG=Color3.fromRGB(10,5,20)
+local PANEL=Color3.fromRGB(18,10,35)
+local DARK=Color3.fromRGB(14,7,28)
+local WHITE=Color3.new(1,1,1)
+local GREEN=Color3.fromRGB(0,220,80)
+local RED=Color3.fromRGB(220,40,40)
+local GOLD=Color3.fromRGB(255,200,0)
+local DIM=Color3.fromRGB(140,100,180)
+
+-- MAIN WINDOW
+local SG=N("NFTv9","ScreenGui",{ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,DisplayOrder=999},PGui)
+local M=N("M","Frame",{Size=UDim2.new(0,230,0,380),Position=UDim2.new(0,30,0,60),BackgroundColor3=BG,BorderSizePixel=0,ClipsDescendants=false},SG)
+corner(M,10)
+local ms=stroke(M,Theme,2)
+
+-- TITLEBAR
+local T=N("T","Frame",{Size=UDim2.new(1,0,0,42),BackgroundColor3=PANEL,BorderSizePixel=0},M)
+corner(T,10)
+grad(T,Theme,Color3.fromRGB(80,0,160),90)
+local TL=N("TL","TextLabel",{Text="⚡ NFT v9",Size=UDim2.new(0.55,0,0,22),Position=UDim2.new(0,8,0,10),BackgroundTransparency=1,TextColor3=WHITE,Font=Enum.Font.GothamBold,TextScaled=true},T)
+local BalL=N("BL","TextLabel",{Size=UDim2.new(0.42,0,0,18),Position=UDim2.new(0.55,0,0,12),BackgroundTransparency=1,TextColor3=GOLD,Font=Enum.Font.GothamBold,TextScaled=true,TextXAlignment=Enum.TextXAlignment.Right},T)
+
+local function updBal()
+	BalL.Text=("⭐%s 💠%s"):format(fmt(gv("_StarsValue")),fmt(gv("_TONValue")))
+end
+updBal()
+for _,vn in ipairs({"_StarsValue","_TONValue","_GemsValue"})do local v=LP:FindFirstChild(vn)if v then v.Changed:Connect(updBal)end end
+
+local XB=N("X","TextButton",{Size=UDim2.new(0,24,0,24),Position=UDim2.new(1,-28,0,9),BackgroundColor3=RED,Text="✕",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},T)
+corner(XB,5)
+XB.MouseButton1Click:Connect(function()
+	M.Visible=false
+	local ico=N("ico","TextButton",{Size=UDim2.new(0,42,0,42),Position=UDim2.new(0,6,0.5,-21),BackgroundColor3=Theme,Text="⚡",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0,ZIndex=999},SG)
+	corner(ico,21)stroke(ico,Color3.fromRGB(255,100,255),2)
+	ico.MouseButton1Click:Connect(function()M.Visible=true;ico:Destroy()end)
+end)
+
+-- DRAG
+local drag,ds,sp=false,nil,nil
+T.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=true;ds=i.Position;sp=M.Position end end)
+UIS.InputChanged:Connect(function(i)if drag and(i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch)then local d=i.Position-ds;M.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)end end)
+UIS.InputEnded:Connect(function(i)if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then drag=false end end)
+UIS.InputBegan:Connect(function(i,gp)if gp then return end;if i.KeyCode==Enum.KeyCode.Insert then M.Visible=not M.Visible end end)
+
+-- SIDEBAR + PAGES
+local SF=N("SF","Frame",{Size=UDim2.new(0,24,1,-42),Position=UDim2.new(0,0,0,42),BackgroundColor3=DARK,BorderSizePixel=0},M)
+N("l","UIListLayout",{FillDirection=Enum.FillDirection.Vertical,HorizontalAlignment=Enum.HorizontalAlignment.Center,VerticalAlignment=Enum.VerticalAlignment.Top,Padding=UDim.new(0,2)},SF)
+N("p","UIPadding",{PaddingTop=UDim.new(0,3)},SF)
+local PF=N("PF","Frame",{Size=UDim2.new(1,-26,1,-44),Position=UDim2.new(0,25,0,43),BackgroundTransparency=1},M)
+
+local TABS={"📦","⚔","🎲","🔥","⬆","☀","❄","🔧","⚙"}
+local TNAMES={"cases","battles","cubes","fuse","upgrade","summer","ng","cheat","settings"}
+local tabBtns={}
+local pages={}
+
+local function switchTab(nm)
+	for _,b in pairs(tabBtns)do tw(b,0.12,{BackgroundColor3=b.Name==nm and Theme or DARK})end
+	for _,p in pairs(pages)do p.Visible=p.Name==nm end
+end
+
+for i,ic in ipairs(TABS)do
+	local b=N(TNAMES[i],"TextButton",{Size=UDim2.new(0,20,0,26),BackgroundColor3=i==1 and Theme or DARK,Text=ic,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},SF)
+	corner(b,4)table.insert(tabBtns,b)
+	local pg=N(TNAMES[i],"ScrollingFrame",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,BorderSizePixel=0,Visible=i==1,ScrollBarThickness=2,ScrollBarImageColor3=Theme,CanvasSize=UDim2.new(0,0,0,0),AutomaticCanvasSize=Enum.AutomaticSize.Y},PF)
+	N("l","UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder},pg)
+	N("p","UIPadding",{PaddingTop=UDim.new(0,3),PaddingLeft=UDim.new(0,2),PaddingRight=UDim.new(0,2)},pg)
+	table.insert(pages,pg)
+	b.MouseButton1Click:Connect(function()switchTab(TNAMES[i])end)
+end
+
+local function gp(nm)for _,p in pairs(pages)do if p.Name==nm then return p end end end
+
+-- HELPERS
+local function sec(par,txt)
+	local l=N("s_"..txt,"TextLabel",{Size=UDim2.new(1,0,0,14),BackgroundTransparency=1,Text=txt,TextColor3=Theme,TextScaled=true,Font=Enum.Font.GothamBold},par)
+	return l
+end
+local function btn(par,txt,cb,bg)
+	local b=N("b","TextButton",{Size=UDim2.new(1,0,0,24),BackgroundColor3=bg or Theme,Text=txt,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},par)
+	corner(b,5)stroke(b,Theme,1)
+	b.MouseButton1Click:Connect(cb)
+	b.MouseEnter:Connect(function()tw(b,0.1,{BackgroundColor3=Color3.fromRGB(200,50,255)})end)
+	b.MouseLeave:Connect(function()tw(b,0.1,{BackgroundColor3=bg or Theme})end)
+	return b
+end
+local function tog(par,lbl,key)
+	local f=N("t_"..lbl,"Frame",{Size=UDim2.new(1,0,0,26),BackgroundColor3=PANEL,BorderSizePixel=0},par)
+	corner(f,5)stroke(f,Theme,1)
+	N("l","TextLabel",{Size=UDim2.new(0.62,0,1,0),Position=UDim2.new(0,4,0,0),BackgroundTransparency=1,Text=lbl,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.Gotham,TextXAlignment=Enum.TextXAlignment.Left},f)
+	local tb=N("tb","TextButton",{Size=UDim2.new(0,52,0,18),Position=UDim2.new(1,-56,0.5,-9),BackgroundColor3=CFG[key]and GREEN or RED,Text=CFG[key]and"ВКЛ"or"ВЫКЛ",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(tb,4)
+	local function upd()tw(tb,0.12,{BackgroundColor3=CFG[key]and GREEN or RED})tb.Text=CFG[key]and"ВКЛ"or"ВЫКЛ"end
+	tb.MouseButton1Click:Connect(function()CFG[key]=not CFG[key];upd()end)
+	return tb
+end
+local function inp(par,ph,cb)
+	local f=N("i","Frame",{Size=UDim2.new(1,0,0,24),BackgroundColor3=PANEL,BorderSizePixel=0},par)
+	corner(f,5)stroke(f,Theme,1)
+	local box=N("box","TextBox",{Size=UDim2.new(0.68,0,1,-2),Position=UDim2.new(0,2,0,1),BackgroundColor3=BG,PlaceholderText=ph,Text="",TextColor3=Color3.fromRGB(180,100,255),PlaceholderColor3=DIM,TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},f)
+	corner(box,4)
+	local ok=N("ok","TextButton",{Size=UDim2.new(0.3,0,1,-2),Position=UDim2.new(0.7,0,0,1),BackgroundColor3=Theme,Text="OK",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(ok,4)
+	ok.MouseButton1Click:Connect(function()if box.Text~=""then cb(box.Text)box.Text=""end end)
+	box.FocusLost:Connect(function(e)if e and box.Text~=""then cb(box.Text)box.Text=""end end)
+	return box
+end
+local function mkCaseCard(par,name,imgId,price,curr,onImg)
+	local f=N("c_"..name,"Frame",{Size=UDim2.new(1,0,0,56),BackgroundColor3=PANEL,BorderSizePixel=0},par)
+	corner(f,7)stroke(f,Theme,1)
+	grad(f,Color3.fromRGB(22,8,44),PANEL,135)
+	local imgL=N("img","ImageLabel",{Size=UDim2.new(0,44,0,44),Position=UDim2.new(0,4,0.5,-22),BackgroundColor3=BG,Image="rbxassetid://"..(imgId and tostring(imgId)or"0")},f)
+	corner(imgL,5)
+	if onImg then
+		local ib=N("ib","TextButton",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text="",ZIndex=2},imgL)
+		ib.MouseButton1Click:Connect(onImg)
+	end
+	N("nm","TextLabel",{Size=UDim2.new(0.52,0,0.48,0),Position=UDim2.new(0,52,0,4),BackgroundTransparency=1,Text=name,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Left},f)
+	local pc=curr=="sun"and"☀"or curr=="snow"and"❄"or"⭐"
+	N("pr","TextLabel",{Size=UDim2.new(0.52,0,0.38,0),Position=UDim2.new(0,52,0.52,0),BackgroundTransparency=1,Text=pc..fmt(price or 0),TextColor3=GOLD,TextScaled=true,Font=Enum.Font.Gotham,TextXAlignment=Enum.TextXAlignment.Left},f)
+	local o1=N("o1","TextButton",{Size=UDim2.new(0,36,0,20),Position=UDim2.new(1,-78,0.12,0),BackgroundColor3=Color3.fromRGB(120,0,200),Text="x1",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(o1,4)
+	local o10=N("o10","TextButton",{Size=UDim2.new(0,36,0,20),Position=UDim2.new(1,-38,0.12,0),BackgroundColor3=Color3.fromRGB(0,180,255),Text="x10",TextColor3=BG,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(o10,4)
+	local selB=N("sel","TextButton",{Size=UDim2.new(0.5,0,0.35,0),Position=UDim2.new(0,52,0.62,0),BackgroundColor3=CFG.sel[name]and GREEN or DARK,Text=CFG.sel[name]and"✓ Авто"or"+ Авто",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},f)
+	corner(selB,4)stroke(selB,Theme,1)
+	selB.MouseButton1Click:Connect(function()CFG.sel[name]=not CFG.sel[name];tw(selB,0.12,{BackgroundColor3=CFG.sel[name]and GREEN or DARK})selB.Text=CFG.sel[name]and"✓ Авто"or"+ Авто"end)
+	o1.MouseButton1Click:Connect(function()pcall(function()Events.OpenCase:InvokeServer(name,1)end)end)
+	o10.MouseButton1Click:Connect(function()pcall(function()Events.OpenCase:InvokeServer(name,10)end)end)
+	return f
+end
+
+-- ══ КЕЙСЫ ══
+local p1=gp("cases")
+sec(p1,"Авто-открытие")
+tog(p1,"Авто кейсы","autoCase")
+tog(p1,"Авто продажа","autoSell")
+btn(p1,"💸 Продать всё (без фаворитов)",function()
+	local n=0;pcall(function()for _,i in pairs(getInv():GetChildren())do if not isFav(i)then Events.Inventory:FireServer("Sell",i.Name,false)n=n+1;task.wait(0.03)end end end)
+	notify("Продажа","Продано: "..n)
+end,Color3.fromRGB(0,140,60))
+sec(p1,"Кейсы")
+for _,cn in ipairs(Cases)do mkCaseCard(p1,cn,CaseImg[cn],CasePrice[cn],"star",function()pcall(function()Events.GUI:Fire("CasePage",cn)end)end)end
+
+-- ══ БАТЛЫ ══
+local p2=gp("battles")
+sec(p2,"Кейсы (вписать количество)")
+local bCntBoxes={}
+for _,cn in ipairs(Cases)do
+	local f=N("bf_"..cn,"Frame",{Size=UDim2.new(1,0,0,52),BackgroundColor3=PANEL,BorderSizePixel=0},p2)
+	corner(f,7)stroke(f,Theme,1)
+	local imgL=N("img","ImageLabel",{Size=UDim2.new(0,40,0,40),Position=UDim2.new(0,3,0.5,-20),BackgroundColor3=BG,Image="rbxassetid://"..(CaseImg[cn]and tostring(CaseImg[cn])or"0")},f)
+	corner(imgL,5)
+	N("nm","TextLabel",{Size=UDim2.new(0.55,0,0.5,0),Position=UDim2.new(0,47,0,4),BackgroundTransparency=1,Text=cn,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.Gotham,TextXAlignment=Enum.TextXAlignment.Left},f)
+	N("pr","TextLabel",{Size=UDim2.new(0.55,0,0.4,0),Position=UDim2.new(0,47,0.52,0),BackgroundTransparency=1,Text="⭐"..fmt(CasePrice[cn]or 0),TextColor3=GOLD,TextScaled=true,Font=Enum.Font.Gotham,TextXAlignment=Enum.TextXAlignment.Left},f)
+	local box=N("cnt","TextBox",{Size=UDim2.new(0,40,0,26),Position=UDim2.new(1,-44,0.5,-13),BackgroundColor3=BG,Text="0",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(box,5)stroke(box,Theme,1)
+	box.FocusLost:Connect(function()CFG.battleCounts[cn]=math.min(tonumber(box.Text)or 0,20);box.Text=tostring(CFG.battleCounts[cn])end)
+	bCntBoxes[cn]=box
+end
+sec(p2,"Управление")
+tog(p2,"Игра с ботом","battleBot")
+local bRunning=false
+local bBtn=btn(p2,"▶ СОЗДАТЬ + СТАРТ",function()end,GREEN)
+bBtn.MouseButton1Click:Connect(function()
+	bRunning=not bRunning
+	tw(bBtn,0.15,{BackgroundColor3=bRunning and RED or GREEN})
+	bBtn.Text=bRunning and"■ СТОП"or"▶ СОЗДАТЬ + СТАРТ"
+	if bRunning then task.spawn(function()
+		while bRunning do
+			local bc={}
+			for cn,cnt in pairs(CFG.battleCounts)do for i=1,cnt do table.insert(bc,cn)end end
+			if#bc>0 then
+				if CFG.battleBot then pcall(function()Events.Battles:InvokeServer("CallABot")end)task.wait(0.5)end
+				pcall(function()Events.Battles:InvokeServer("Create",bc,{})end)
+			end
+			task.wait(3)
+		end
+	end)end
+end)
+sec(p2,"Цепочка батлов")
+local chainDisp=N("cd","TextLabel",{Size=UDim2.new(1,0,0,36),BackgroundColor3=BG,Text="Пусто",TextColor3=DIM,TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p2)
+corner(chainDisp,5)stroke(chainDisp,Theme,1)
+local function updChain()if#CHAIN==0 then chainDisp.Text="Пусто";return end;local t=""for i,v in ipairs(CHAIN)do t=t..i..". "..v.mode.." "..fmt(v.bet).."\n"end;chainDisp.Text=t end
+local chModeB=N("cm","TextBox",{Size=UDim2.new(0.48,0,0,22),BackgroundColor3=BG,Text="default",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p2)
+corner(chModeB,4)stroke(chModeB,Theme,1)
+local chBetB=N("cb","TextBox",{Size=UDim2.new(0.48,0,0,22),BackgroundColor3=BG,Text="1000",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p2)
+corner(chBetB,4)stroke(chBetB,Theme,1)
+btn(p2,"+ Добавить",function()table.insert(CHAIN,{mode=chModeB.Text~=""and chModeB.Text or"default",bet=tonumber(chBetB.Text)or 1000})updChain()end,Theme)
+btn(p2,"🗑 Очистить",function()CHAIN={};updChain()end,RED)
+local chRunning=false
+local chBtn=btn(p2,"▶ Запустить цепочку",function()end,Color3.fromRGB(0,120,200))
+chBtn.MouseButton1Click:Connect(function()
+	chRunning=not chRunning
+	tw(chBtn,0.15,{BackgroundColor3=chRunning and RED or Color3.fromRGB(0,120,200)})
+	chBtn.Text=chRunning and"■ СТОП"or"▶ Запустить цепочку"
+	if chRunning then task.spawn(function()while chRunning do
+		for _,v in ipairs(CHAIN)do if not chRunning then break end
+			if CFG.battleBot then pcall(function()Events.Battles:InvokeServer("CallABot")end)task.wait(0.5)end
+			pcall(function()Events.Battles:InvokeServer("Create",{},{Mode=v.mode,Bet=v.bet})end)
+			task.wait(3)
+		end
+	end end)end
+end)
+
+-- ══ КУБЫ ══
+local p3=gp("cubes")
+sec(p3,"Режим куба")
+local cmf=N("cmf","Frame",{Size=UDim2.new(1,0,0,28),BackgroundColor3=PANEL,BorderSizePixel=0},p3)
+corner(cmf,6)stroke(cmf,Theme,1)
+local defB=N("d","TextButton",{Size=UDim2.new(0.48,0,1,-4),Position=UDim2.new(0,2,0,2),BackgroundColor3=GREEN,Text="Default",TextColor3=BG,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},cmf)
+corner(defB,4)
+local curB=N("c","TextButton",{Size=UDim2.new(0.48,0,1,-4),Position=UDim2.new(0.52,0,0,2),BackgroundColor3=PANEL,Text="Cursed",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},cmf)
+corner(curB,4)
+defB.MouseButton1Click:Connect(function()CFG.cubeMode="default";tw(defB,0.1,{BackgroundColor3=GREEN});tw(curB,0.1,{BackgroundColor3=PANEL})end)
+curB.MouseButton1Click:Connect(function()CFG.cubeMode="cursed";tw(curB,0.1,{BackgroundColor3=RED});tw(defB,0.1,{BackgroundColor3=PANEL})end)
+sec(p3,"Ставка")
+local cubBetB=N("cb","TextBox",{Size=UDim2.new(1,0,0,24),BackgroundColor3=BG,Text="1000",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},p3)
+corner(cubBetB,5)stroke(cubBetB,Theme,1)
+cubBetB.FocusLost:Connect(function()CFG.cubeBet=tonumber(cubBetB.Text)or 1000;cubBetB.Text=tostring(CFG.cubeBet)end)
+local cubeRunning=false
+local cubeBtn=btn(p3,"▶ СОЗДАТЬ КУБ + БОТ",function()end,GREEN)
+cubeBtn.MouseButton1Click:Connect(function()
+	cubeRunning=not cubeRunning
+	tw(cubeBtn,0.15,{BackgroundColor3=cubeRunning and RED or GREEN})
+	cubeBtn.Text=cubeRunning and"■ СТОП"or"▶ СОЗДАТЬ КУБ + БОТ"
+	if cubeRunning then task.spawn(function()while cubeRunning do
+		pcall(function()Events.Dices:InvokeServer("Create",{Mode=CFG.cubeMode,Bet=CFG.cubeBet})end)
+		task.wait(1)
+		pcall(function()Events.Dices:InvokeServer("CallABot")end)
+		task.wait(2)
+	end end)end
+end)
+sec(p3,"Цепочка кубов")
+local cbDisp=N("cbd","TextLabel",{Size=UDim2.new(1,0,0,36),BackgroundColor3=BG,Text="Пусто",TextColor3=DIM,TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p3)
+corner(cbDisp,5)stroke(cbDisp,Theme,1)
+local function updCubeChain()if#CUBE_CHAIN==0 then cbDisp.Text="Пусто";return end;local t=""for i,v in ipairs(CUBE_CHAIN)do t=t..i..". "..v.mode.." "..fmt(v.bet).."\n"end;cbDisp.Text=t end
+local cbModeB=N("cbm","TextBox",{Size=UDim2.new(0.48,0,0,22),BackgroundColor3=BG,Text="default",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p3)
+corner(cbModeB,4)stroke(cbModeB,Theme,1)
+local cbBetB=N("cbb","TextBox",{Size=UDim2.new(0.48,0,0,22),BackgroundColor3=BG,Text="1000",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},p3)
+corner(cbBetB,4)stroke(cbBetB,Theme,1)
+btn(p3,"+ Добавить",function()table.insert(CUBE_CHAIN,{mode=cbModeB.Text~=""and cbModeB.Text or"default",bet=tonumber(cbBetB.Text)or 1000})updCubeChain()end,Theme)
+btn(p3,"🗑 Очистить",function()CUBE_CHAIN={};updCubeChain()end,RED)
+local cbChainRunning=false
+local cbChainBtn=btn(p3,"▶ Запустить цепочку",function()end,Color3.fromRGB(0,120,200))
+cbChainBtn.MouseButton1Click:Connect(function()
+	cbChainRunning=not cbChainRunning
+	tw(cbChainBtn,0.15,{BackgroundColor3=cbChainRunning and RED or Color3.fromRGB(0,120,200)})
+	cbChainBtn.Text=cbChainRunning and"■ СТОП"or"▶ Запустить цепочку"
+	if cbChainRunning then task.spawn(function()while cbChainRunning do
+		for _,v in ipairs(CUBE_CHAIN)do if not cbChainRunning then break end
+			pcall(function()Events.Dices:InvokeServer("Create",{Mode=v.mode,Bet=v.bet})end)
+			task.wait(1)
+			pcall(function()Events.Dices:InvokeServer("CallABot")end)
+			task.wait(2)
+		end
+	end end)end
+end)
+
+-- ══ ФЬЮЗ ══
+local p4=gp("fuse")
+sec(p4,"Авто Фьюз")
+tog(p4,"Авто фьюз","fuseOn")
+tog(p4,"Пропускать фавориты","fuseFavSkip")
+btn(p4,"🔥 Фьюз x1",function()
+	pcall(function()
+		local g={};for _,i in pairs(getInv():GetChildren())do if not(CFG.fuseFavSkip and isFav(i))and not i:GetAttribute("Unique")then g[i.Name]=g[i.Name]or{};table.insert(g[i.Name],i)end end
+		for _,items in pairs(g)do if#items>=5 then Events.Fuse:InvokeServer("Fuse",{items[1],items[2],items[3],items[4],items[5]},true)break end end
+	end)
+end,Color3.fromRGB(140,0,200))
+btn(p4,"🔥 Фьюз ALL",function()
+	task.spawn(function()
+		local done=false;repeat done=true
+			local g={};pcall(function()for _,i in pairs(getInv():GetChildren())do if not(CFG.fuseFavSkip and isFav(i))and not i:GetAttribute("Unique")then g[i.Name]=g[i.Name]or{};table.insert(g[i.Name],i)end end end)
+			for _,items in pairs(g)do if#items>=5 then pcall(function()Events.Fuse:InvokeServer("Fuse",{items[1],items[2],items[3],items[4],items[5]},true)end)done=false;task.wait(0.3);break end end
+		until done;notify("Фьюз","Все фьюзы выполнены!")
+	end)
+end,Color3.fromRGB(100,0,180))
+sec(p4,"Авто крафт календарей")
+tog(p4,"Авто крафт Desk Calendars","autoCalOn")
+btn(p4,"📅 Крафт x1",function()pcall(function()Events.OpenCase:InvokeServer("Desk Calendars",1)end)end,Color3.fromRGB(0,100,160))
+
+-- ══ АПГРЕЙД ══
+local p5=gp("upgrade")
+sec(p5,"Авто апгрейд")
+tog(p5,"Авто апгрейд","autoUpgOn")
+local u1b=inp(p5,"NFT 1 (исходное)",function(v)CFG.upg1=v end)
+local u2b=inp(p5,"NFT 2 (цель)",function(v)CFG.upg2=v end)
+btn(p5,"⬆ Апгрейд x1",function()
+	pcall(function()
+		local inv=getInv();local i1=inv:FindFirstChild(CFG.upg1);local i2=inv:FindFirstChild(CFG.upg2)
+		if i1 and i2 then Events.Upgrade:InvokeServer(i1,i2);notify("Апгрейд",CFG.upg1.."→"..CFG.upg2)
+		else notify("Апгрейд","NFT не найдены!")end
+	end)
+end,Color3.fromRGB(0,140,200))
+btn(p5,"⬆ Апгрейд x10",function()
+	for i=1,10 do pcall(function()local inv=getInv();local i1=inv:FindFirstChild(CFG.upg1);local i2=inv:FindFirstChild(CFG.upg2);if i1 and i2 then Events.Upgrade:InvokeServer(i1,i2)end end)task.wait(0.15)end
+end,Color3.fromRGB(0,100,160))
+
+-- ══ ЛЕТО ══
+local p6=gp("summer")
+local sunL=N("sl","TextLabel",{Size=UDim2.new(1,0,0,32),BackgroundColor3=PANEL,Text="☀ — | 🌀 — спинов",TextColor3=GOLD,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},p6)
+corner(sunL,6)stroke(sunL,Theme,1)
+local function updSun()local sv=LP:FindFirstChild("_SunValue")local spv=LP:FindFirstChild("_SummerSpinsValue");sunL.Text=("☀ %s | 🌀 %s спинов"):format(fmt(sv and sv.Value or 0),fmt(spv and spv.Value or 0))end
+updSun()
+btn(p6,"☀ Собрать солнца",function()pcall(function()Events.Summer:InvokeServer("CollectSun")end)updSun()end,GOLD)
+tog(p6,"Авто сбор солнц","sunCollOn")
+sec(p6,"Summer Spin")
+btn(p6,"🌀 SUMMER SPIN x1",function()pcall(function()Events.Summer:InvokeServer("Spin")end)updSun()end,Color3.fromRGB(0,160,220))
+btn(p6,"🌀 x10",function()for i=1,10 do pcall(function()Events.Summer:InvokeServer("Spin")end)task.wait(0.5)end;updSun()end,Color3.fromRGB(0,120,180))
+tog(p6,"Авто летний спин","sunSpinOn")
+sec(p6,"Летние кейсы")
+for _,cn in ipairs(SumList)do
+	local d=SumCases[cn]
+	mkCaseCard(p6,cn,d.img,d.p,"sun",function()pcall(function()Events.GUI:Fire("CasePage",cn)end)end)
+end
+
+-- ══ НГ ══
+local p7=gp("ng")
+local ngL=N("nl","TextLabel",{Size=UDim2.new(1,0,0,28),BackgroundColor3=PANEL,Text="❄ — снежинок | 🎡 — спинов",TextColor3=Color3.fromRGB(150,210,255),TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},p7)
+corner(ngL,6)stroke(ngL,Theme,1)
+local function updNG()local sn=LP:FindFirstChild("_SnowflakesValue");local sp=LP:FindFirstChild("_NGSpinsValue");ngL.Text=("❄ %s снежинок | 🎡 %s спинов"):format(fmt(sn and sn.Value or 0),fmt(sp and sp.Value or 0))end
+updNG()
+sec(p7,"Robin Spin")
+btn(p7,"🎡 ROBIN SPIN x1",function()pcall(function()Events.Spin:InvokeServer("Spin")end)updNG()end,Color3.fromRGB(0,100,180))
+btn(p7,"🎡 x10",function()for i=1,10 do pcall(function()Events.Spin:InvokeServer("Spin")end)task.wait(0.5)end;updNG()end,Color3.fromRGB(0,80,150))
+tog(p7,"Авто НГ спин","ngSpinOn")
+sec(p7,"НГ кейсы")
+for _,cn in ipairs(NGList)do
+	local d=NGCases[cn]
+	mkCaseCard(p7,cn,d.img,d.p,"snow",function()pcall(function()Events.GUI:Fire("CasePage",cn)end)end)
+end
+
+-- ══ МЕХАНИКА (ЧИТЫ) ══
+local p8=gp("cheat")
+sec(p8,"Баланс (локально)")
+btn(p8,"💰 Всё x999M",function()for _,n in ipairs({"_StarsValue","_TONValue","_GemsValue","_SnowflakesValue"})do local v=LP:FindFirstChild(n)if v then v.Value=999999999 end end;updBal()end,GREEN)
+inp(p8,"⭐ Звёзды",function(t)local v=LP:FindFirstChild("_StarsValue")if v then v.Value=tonumber(t)or v.Value end;updBal()end)
+inp(p8,"💠 TON",function(t)local v=LP:FindFirstChild("_TONValue")if v then v.Value=tonumber(t)or v.Value end;updBal()end)
+inp(p8,"💎 Гемы",function(t)local v=LP:FindFirstChild("_GemsValue")if v then v.Value=tonumber(t)or v.Value end end)
+inp(p8,"❄ Снежинки",function(t)local v=LP:FindFirstChild("_SnowflakesValue")if v then v.Value=tonumber(t)or v.Value end;updNG()end)
+inp(p8,"☀ Солнца",function(t)local v=LP:FindFirstChild("_SunValue")if v then v.Value=tonumber(t)or v.Value end;updSun()end)
+inp(p8,"🌀 Летних спинов",function(t)local v=LP:FindFirstChild("_SummerSpinsValue")if v then v.Value=tonumber(t)or v.Value end;updSun()end)
+sec(p8,"Бонусы")
+local luckSecs={}
+local function mkLuckRow(par,label,key1,key2,defSec)
+	local f=N("lr","Frame",{Size=UDim2.new(1,0,0,50),BackgroundColor3=PANEL,BorderSizePixel=0},par)
+	corner(f,6)stroke(f,Theme,1)
+	N("l","TextLabel",{Size=UDim2.new(0.5,0,0,18),Position=UDim2.new(0,4,0,2),BackgroundTransparency=1,Text=label,TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Left},f)
+	local secBox=N("sb","TextBox",{Size=UDim2.new(0.45,0,0,20),Position=UDim2.new(0,4,0,22),BackgroundColor3=BG,Text=tostring(defSec),PlaceholderText="сек",TextColor3=Color3.fromRGB(180,100,255),TextScaled=true,Font=Enum.Font.Gotham,BorderSizePixel=0},f)
+	corner(secBox,4)stroke(secBox,Theme,1)
+	local timerL=N("tl","TextLabel",{Size=UDim2.new(0.4,0,0,20),Position=UDim2.new(0.5,0,0,22),BackgroundTransparency=1,Text="⏱ —",TextColor3=GOLD,TextScaled=true,Font=Enum.Font.GothamBold},f)
+	local runBtn=N("rb","TextButton",{Size=UDim2.new(0.48,0,0,18),Position=UDim2.new(0.52,0,0,2),BackgroundColor3=GREEN,Text="▶",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold,BorderSizePixel=0},f)
+	corner(runBtn,4)
+	local running=false
+	runBtn.MouseButton1Click:Connect(function()
+		running=not running
+		tw(runBtn,0.12,{BackgroundColor3=running and RED or GREEN})
+		runBtn.Text=running and"■"or"▶"
+		if running then task.spawn(function()
+			local secs=tonumber(secBox.Text)or defSec
+			if key1 then local v=RS:FindFirstChild(key1)if v then v.Value=600 end end
+			if key2 then local v=LP:FindFirstChild(key2)if v then v.Value=600 end end
+			while running and secs>0 do
+				timerL.Text="⏱ "..secs.."с"
+				task.wait(1);secs=secs-1
+			end
+			if secs<=0 then
+				if key1 then local v=RS:FindFirstChild(key1)if v then v.Value=0 end end
+				if key2 then local v=LP:FindFirstChild(key2)if v then v.Value=0 end end
+				timerL.Text="⏱ 0"
+				running=false
+				tw(runBtn,0.12,{BackgroundColor3=GREEN});runBtn.Text="▶"
+			end
+		end)end
+	end)
+end
+mkLuckRow(p8,"🍀 Удача x2","LuckValue","_LuckyPotion",120)
+mkLuckRow(p8,"🍀 Удача x4","LuckValue2","_LuckyPotion2",120)
+mkLuckRow(p8,"✝ Благословение","CrossValue",nil,60)
+btn(p8,"⚡ Fast Upgrade",function()local p=LP:FindFirstChild("_1628441770")or Instance.new("NumberValue",LP);p.Name="_1628441770";p.Value=1;notify("Чит","Fast Upgrade!")end,Color3.fromRGB(0,160,80))
+btn(p8,"📊 Индекс MAX",function()local idx=LP:FindFirstChild("_Index")if idx then for _,v in pairs(idx:GetChildren())do if v:IsA("IntValue")then v.Value=999999 end end end;notify("Чит","Индекс!")end,Theme)
+btn(p8,"🔓 Все геймпасы",function()for _,id in ipairs({1628441770,1651738174,1640776898})do local p=LP:FindFirstChild("_"..id)or Instance.new("NumberValue",LP);p.Name="_"..id;p.Value=1 end;notify("Чит","Геймпасы!")end,Color3.fromRGB(0,100,50))
+sec(p8,"NFT утилиты")
+inp(p8,"NFT в инвентарь",function(t)pcall(function()local v=Instance.new("StringValue",getInv());v.Name=t end);notify("NFT","Добавлен: "..t)end)
+inp(p8,"Лучший дроп (визуал)",function(t)local d=LP:FindFirstChild("_BestDrop")if d then d.Value=t end end)
+inp(p8,"TON NFT (Название)",function(t)
+	pcall(function()
+		local inv=getInv()
+		local v=Instance.new("StringValue",inv);v.Name=t
+		v:SetAttribute("TON",true);v:SetAttribute("Favorite",true)
+		v:SetAttribute("Date",os.date("%d.%m.%Y"))
+		notify("NFT","TON NFT создан: "..t)
+	end)
+end)
+
+-- ══ НАСТРОЙКИ ══
+local p9=gp("settings")
+sec(p9,"Тема")
+local tcf=N("tcf","Frame",{Size=UDim2.new(1,0,0,28),BackgroundColor3=PANEL,BorderSizePixel=0},p9)
+corner(tcf,6)
+N("l","UIListLayout",{FillDirection=Enum.FillDirection.Horizontal,HorizontalAlignment=Enum.HorizontalAlignment.Left,VerticalAlignment=Enum.VerticalAlignment.Center,Padding=UDim.new(0,3)},tcf)
+N("p","UIPadding",{PaddingLeft=UDim.new(0,3)},tcf)
+for _,clr in ipairs(TColors)do
+	local cb=N("c","TextButton",{Size=UDim2.new(0,18,0,18),BackgroundColor3=clr,Text="",BorderSizePixel=0},tcf)
+	corner(cb,9)
+	cb.MouseButton1Click:Connect(function()
+		Theme=clr
+		ms.Color=clr
+		for _,b in pairs(tabBtns)do if b.BackgroundColor3~=DARK then b.BackgroundColor3=clr end end
+	end)
+end
+sec(p9,"Профиль")
+local avL=N("av","ImageLabel",{Size=UDim2.new(0,40,0,40),BackgroundColor3=PANEL,Image=("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=150&height=150&format=png"):format(LP.UserId)},p9)
+corner(avL,20)
+N("nick","TextLabel",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,Text="👤 "..LP.DisplayName.." (@"..LP.Name..")",TextColor3=WHITE,TextScaled=true,Font=Enum.Font.GothamBold},p9)
+N("uid","TextLabel",{Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,Text="ID: "..tostring(LP.UserId),TextColor3=DIM,TextScaled=true,Font=Enum.Font.Gotham},p9)
+sec(p9,"Создатели")
+local authF=N("af","Frame",{Size=UDim2.new(1,0,0,44),BackgroundColor3=PANEL,BorderSizePixel=0},p9)
+corner(authF,7)stroke(authF,Theme,1)
+N("a","TextLabel",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text="👑 Robin  🤝 Loversi  💻 Vladimirs",TextColor3=Theme,TextScaled=true,Font=Enum.Font.GothamBold},authF)
+
+-- ГЛАВНЫЕ ЦИКЛЫ
+local tCase,tFuse,tSunSpin,tSunColl,tNGSpin,tCal,tUpg=0,0,0,0,0,0,0
+RUN.Heartbeat:Connect(function(dt)
+	tCase=tCase+dt
+	if CFG.autoCase and tCase>=0.05 then tCase=0
+		for n,_ in pairs(CFG.sel)do
+			pcall(function()Events.OpenCase:InvokeServer(n,10)end)
+			if CFG.autoSell then task.spawn(function()task.wait(0.5)pcall(function()for _,i in pairs(getInv():GetChildren())do if not isFav(i)then Events.Inventory:FireServer("Sell",i.Name,false)task.wait(0.03)end end end)end)end
+		end
+	end
+	tFuse=tFuse+dt
+	if CFG.fuseOn and tFuse>=0.2 then tFuse=0
+		pcall(function()local g={};for _,i in pairs(getInv():GetChildren())do if not(CFG.fuseFavSkip and isFav(i))and not i:GetAttribute("Unique")then g[i.Name]=g[i.Name]or{};table.insert(g[i.Name],i)end end;for _,items in pairs(g)do if#items>=5 then Events.Fuse:InvokeServer("Fuse",{items[1],items[2],items[3],items[4],items[5]},true)break end end end)
+	end
+	tSunSpin=tSunSpin+dt
+	if CFG.sunSpinOn and tSunSpin>=1 then tSunSpin=0;pcall(function()Events.Summer:InvokeServer("Spin")end)end
+	tSunColl=tSunColl+dt
+	if CFG.sunCollOn and tSunColl>=30 then tSunColl=0;pcall(function()Events.Summer:InvokeServer("CollectSun")end)end
+	tNGSpin=tNGSpin+dt
+	if CFG.ngSpinOn and tNGSpin>=0.8 then tNGSpin=0;pcall(function()Events.Spin:InvokeServer("Spin")end)end
+	tCal=tCal+dt
+	if CFG.autoCalOn and tCal>=0.4 then tCal=0;pcall(function()Events.OpenCase:InvokeServer("Desk Calendars",1)end)end
+	tUpg=tUpg+dt
+	if CFG.autoUpgOn and tUpg>=0.15 then tUpg=0
+		pcall(function()local inv=getInv();local i1=inv:FindFirstChild(CFG.upg1);local i2=inv:FindFirstChild(CFG.upg2);if i1 and i2 then Events.Upgrade:InvokeServer(i1,i2)end end)
+	end
+end)
+-- АНТИ-АФК
+local afkT=0
+RUN.Heartbeat:Connect(function(dt)afkT=afkT+dt;if afkT>=55 then afkT=0;pcall(function()local c=workspace:FindFirstChildWhichIsA("Camera")if c then c.CFrame=c.CFrame*CFrame.Angles(0,0.001,0)end end)end end)
+
+switchTab("cases")
+notify("NFT v9 ⚡","Загружен! INSERT = скрыть/показать")
+print("✅ NFT v9 — NO LIB — loaded!")
